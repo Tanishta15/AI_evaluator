@@ -1,0 +1,95 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+PIPFILE.lock
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+.env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Project specific
+# Temporary files and directories
+temp/
+tmp/
+*.tmp
+*.temp
+
+# Output files
+pipeline_output/
+analysis_output/
+scores/
+evaluation_results/
+reports/
+
+# Vector database
+vector_db/
+chromadb/
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Logs
+*.log
+logs/
+
+# Test results
+test_*.csv
+test_*.parquet
+final_*.csv
+final_*.parquet
+
+# Cache
+.cache/
+.pytest_cache/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Large files (you might want to use Git LFS for these)
+*.ppt
+*.pptx
+*.pdf
+*.png
+*.jpg
+*.jpeg
+*.parquet
