@@ -12,7 +12,7 @@
 - **Must-Have Technologies**: Clearly identify and implement required tech stack for your track
 - **DPK/IBM Granite**: Implement RAG/Agentic usage in your solution
 - **Traditional AI**: If using Traditional AI, DPK usage is **mandatory**
-
+ 
 ### 3. Solution Requirements
 - **Working Prototype**: Must demonstrate a functional implementation
 - **Bias Testing**: Document methodology for testing and mitigating bias

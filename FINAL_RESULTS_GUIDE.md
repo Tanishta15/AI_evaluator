@@ -12,7 +12,7 @@ The AI Evaluator system has been optimized to focus on final evaluation results 
   - `evaluation_top20.csv` - Top 20 presentations
   - `evaluation_top15.csv` - Top 15 presentations (final selection)
   - `evaluation_per_model.csv` - Detailed per-model scoring
-
+ 
 ### Top Results Display
 - **Frontend shows only top 15-20 presentations** to focus on finalists
 - **Ranked display** with clear visual hierarchy

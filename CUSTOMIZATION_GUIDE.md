@@ -6,7 +6,7 @@ The AI Content Evaluator now supports customizable scoring parameters and weight
 ## Theme-Based Configurations
 
 ### Available Themes
-
+ 
 1. **Default (Balanced)**
    - Dimensions: Uniqueness (25%), Completeness (30%), Impact (30%), Ethics (5%)
    - Sections: Problem (30%), Solution (35%), Architecture (35%)
