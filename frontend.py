@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import sys
 import os
+import json
 from pathlib import Path
 import time
 from typing import List, Tuple, Dict, Any
@@ -161,8 +162,8 @@ class ContentEvaluatorPipeline:
         except Exception as e:
             return f"Image processing error: {str(e)}"
     
-    def run_evaluation(self) -> Tuple[bool, str]:
-        """Run the evaluation pipeline (report_generator.py)."""
+    def run_evaluation(self, theme: str = "default") -> Tuple[bool, str]:
+        """Run the evaluation pipeline (report_generator.py) with specified theme."""
         try:
             # Check if there are processed files first
             pipeline_output = Path(self.temp_dir) / "pipeline_output"
@@ -200,7 +201,8 @@ class ContentEvaluatorPipeline:
                 sys.executable,
                 "report_generator.py", 
                 "--input_dir", str(evaluation_results),
-                "--out_prefix", str(Path(self.temp_dir) / "scores" / "evaluation")
+                "--out_prefix", str(Path(self.temp_dir) / "scores" / "evaluation"),
+                "--theme", theme
             ]
             
             result = subprocess.run(
@@ -216,7 +218,7 @@ class ContentEvaluatorPipeline:
                 scores_dir = Path(self.temp_dir) / "scores"
                 evaluation_csv = scores_dir / "evaluation.csv"
                 if evaluation_csv.exists():
-                    return True, f"Evaluation completed! Processed {len(copied_files)} parquet files and generated results."
+                    return True, f"Evaluation completed with {theme} theme! Processed {len(copied_files)} parquet files and generated results."
                 else:
                     return False, f"Evaluation completed but no CSV results generated."
             else:
@@ -228,14 +230,31 @@ class ContentEvaluatorPipeline:
             return False, f"Evaluation error: {str(e)}"
     
     def load_results(self) -> Dict[str, Any]:
-        """Load and return all results."""
+        """Load and return all results, prioritizing top results CSV files."""
         results = {}
         scores_dir = Path(self.temp_dir) / "scores"
         
-        # Load main evaluation results
+        # First try to load top 20/15 results if available
+        top20_csv = scores_dir / "evaluation_top20.csv"
+        top15_csv = scores_dir / "evaluation_top15.csv"
         main_csv = scores_dir / "evaluation.csv"
-        if main_csv.exists():
-            results['main_scores'] = pd.read_csv(main_csv)
+        
+        # Load main evaluation results (prefer top20, fallback to main)
+        if top20_csv.exists():
+            results['main_scores'] = pd.read_csv(top20_csv)
+            print(f"Loaded top 20 results from {top20_csv}")
+        elif main_csv.exists():
+            # Load full results but limit to top 20 in frontend
+            full_df = pd.read_csv(main_csv)
+            results['main_scores'] = full_df.head(20) if len(full_df) > 20 else full_df
+            print(f"Loaded and limited main results to top 20 from {main_csv}")
+        else:
+            print("No main results CSV found")
+        
+        # Load top 15 if available for comparison
+        if top15_csv.exists():
+            results['top15_scores'] = pd.read_csv(top15_csv)
+            print(f"Loaded top 15 results from {top15_csv}")
         
         # Load per-model results
         per_model_csv = scores_dir / "evaluation_per_model.csv"
@@ -254,9 +273,9 @@ class ContentEvaluatorPipeline:
 # Global pipeline instance
 pipeline = ContentEvaluatorPipeline()
 
-def process_uploads(files) -> str:
-    """Process uploaded files through the complete pipeline."""
-    print(f"process_uploads called with {len(files) if files else 0} files")
+def process_uploads(files, theme="default") -> str:
+    """Process uploaded files through the complete pipeline with specified theme."""
+    print(f"process_uploads called with {len(files) if files else 0} files, theme: {theme}")
     
     if not files:
         return "No files uploaded"
@@ -265,7 +284,7 @@ def process_uploads(files) -> str:
         # Setup environment
         temp_dir = pipeline.setup_temp_environment()
         print(f"Temp directory created: {temp_dir}")
-        status_msg = f"Setup complete. Processing {len(files)} files...\n\n"
+        status_msg = f"Setup complete. Processing {len(files)} files with {theme} theme...\n\n"
         
         # Debug file information
         for i, file in enumerate(files):
@@ -297,9 +316,9 @@ def process_uploads(files) -> str:
             else:
                 status_msg += "No parquet files found\n\n"
         
-        # Step 2: Run evaluation (report_generator.py)
-        status_msg += "Step 2: Running evaluation (report_generator.py)...\n"
-        success, msg = pipeline.run_evaluation()
+        # Step 2: Run evaluation (report_generator.py) with theme
+        status_msg += f"Step 2: Running evaluation with {theme} theme (report_generator.py)...\n"
+        success, msg = pipeline.run_evaluation(theme)
         status_msg += msg + "\n\n"
         
         if not success:
@@ -310,7 +329,7 @@ def process_uploads(files) -> str:
         results = pipeline.load_results()
         
         if 'main_scores' in results:
-            status_msg += f"Pipeline completed successfully! Generated results for {len(results['main_scores'])} submissions"
+            status_msg += f"Pipeline completed successfully! Generated results for {len(results['main_scores'])} submissions using {theme} theme configuration."
             return status_msg
         else:
             status_msg += "No evaluation results found in CSV files"
@@ -323,7 +342,7 @@ def process_uploads(files) -> str:
 
 # SUBMISSIONS PAGE FUNCTIONS
 def get_submissions_table():
-    """Generate submissions table with all models."""
+    """Generate submissions table showing top 15-20 results with size optimization info."""
     if not pipeline.results or 'main_scores' not in pipeline.results:
         return "<p>No data available. Please run evaluation first.</p>"
     
@@ -332,6 +351,7 @@ def get_submissions_table():
     # Debug: Print the raw data to ensure consistency
     print(f"Frontend Debug - Main scores data loaded:")
     print(f"  Columns: {list(df.columns)}")
+    print(f"  Total submissions: {len(df)}")
     print(f"  Overall score: {df.iloc[0]['overall_score'] if len(df) > 0 else 'N/A'}")
     if len(df) > 0:
         for col in ['problem_statement_total', 'proposed_solution_total', 'technical_architecture_total']:
@@ -342,24 +362,119 @@ def get_submissions_table():
     df_sorted = df.sort_values('overall_score', ascending=False).reset_index(drop=True)
     df_sorted.insert(0, 'Rank', range(1, len(df_sorted) + 1))
     
+    # LIMIT TO TOP 20 RESULTS ONLY
+    top_20_df = df_sorted.head(20).copy()
+    
     # Round numeric columns to ensure consistent display
-    numeric_cols = df_sorted.select_dtypes(include=[np.number]).columns
-    df_sorted[numeric_cols] = df_sorted[numeric_cols].round(3)  # Increased precision for better accuracy
+    numeric_cols = top_20_df.select_dtypes(include=[np.number]).columns
+    top_20_df[numeric_cols] = top_20_df[numeric_cols].round(3)
+    
+    # Add header with summary information
+    total_submissions = len(df_sorted)
+    showing_count = len(top_20_df)
+    
+    header_html = f"""
+    <div style="
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        text-align: center;
+    ">
+        <h2 style="margin: 0 0 10px 0;">🏆 Final Rankings - Top {showing_count} Presentations</h2>
+        <p style="margin: 0; opacity: 0.9;">
+            Showing top {showing_count} out of {total_submissions} total submissions
+        </p>
+        <div style="
+            background: rgba(255,255,255,0.2);
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: inline-block;
+        ">
+            <strong>📊 Results saved to CSV files for final review</strong>
+        </div>
+    </div>
+    """
+    
+    # Add optimal size recommendations
+    size_recommendations_html = f"""
+    <div style="
+        background: rgba(255, 193, 7, 0.15);
+        border: 2px solid rgba(255, 193, 7, 0.5);
+        border-radius: 12px;
+        padding: 15px;
+        margin-bottom: 20px;
+    ">
+        <h3 style="color: #ffc107; margin: 0 0 10px 0; display: flex; align-items: center;">
+            <span style="margin-right: 8px;"></span> Optimal PPT Size Guidelines
+        </h3>
+        <div style="color: #e0e0e0; font-size: 14px;">
+            <p><strong>Recommended:</strong> PPT files under 5MB for optimal processing</p>
+            <p><strong>Note:</strong> Larger files may have longer processing times and reduced accuracy</p>
+            <p><strong>Top 10 optimally-sized presentations:</strong> Files under 5MB are prioritized for detailed review</p>
+        </div>
+    </div>
+    """
     
     # Create responsive card-based layout instead of table
     cards_html = ""
-    for _, row in df_sorted.iterrows():
+    optimal_size_count = 0
+    
+    for _, row in top_20_df.iterrows():
+        # Determine if this is an optimal size presentation using backend file size data
+        file_size_mb = row.get('file_size_mb', 0)
+        is_optimal_size = False
+        
+        if file_size_mb > 0 and file_size_mb <= 5.0:
+            is_optimal_size = True
+            optimal_size_count += 1
+        elif optimal_size_count < 10 and file_size_mb == 0:  # Fallback if no size data
+            is_optimal_size = True
+            optimal_size_count += 1
+        
         rank_color = "#FFD700" if row['Rank'] == 1 else "#C0C0C0" if row['Rank'] == 2 else "#CD7F32" if row['Rank'] == 3 else "#667eea"
+        
+        # Add special styling for optimal size presentations
+        border_style = f"3px solid {rank_color}"
+        if is_optimal_size and row['Rank'] <= 10:
+            border_style = f"3px solid #28a745"  # Green border for optimal size
         
         cards_html += f"""
         <div style="
             background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
-            border: 2px solid {rank_color};
+            border: {border_style};
             border-radius: 12px;
             padding: 20px;
             margin: 15px 0;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            position: relative;
         ">
+        """
+        
+        # Add optimal size badge with actual file size
+        if is_optimal_size and row['Rank'] <= 10:
+            file_size = row.get('file_size_mb', 0)
+            size_text = f"({file_size:.1f}MB)" if file_size > 0 else ""
+            cards_html += f"""
+            <div style="
+                position: absolute;
+                top: -10px;
+                right: 15px;
+                background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+                color: white;
+                padding: 5px 12px;
+                border-radius: 15px;
+                font-size: 12px;
+                font-weight: bold;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            ">
+                OPTIMAL SIZE {size_text}
+            </div>
+            """
+        
+        cards_html += f"""
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <div style="
                     background: {rank_color};
@@ -390,9 +505,9 @@ def get_submissions_table():
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
         """
         
-                # Add all other columns as key-value pairs
-        for col in df_sorted.columns:
-            if col not in ['Rank', 'submission_id', 'overall_score'] and pd.notna(row[col]):
+        # Add all other columns as key-value pairs (except feedback which we'll handle separately)
+        for col in top_20_df.columns:
+            if col not in ['Rank', 'submission_id', 'overall_score', 'feedback'] and pd.notna(row[col]):
                 display_name = col.replace('_', ' ').title().replace('Total', 'Score')
                 # Format the value properly with higher precision
                 if isinstance(row[col], (int, float)):
@@ -418,19 +533,126 @@ def get_submissions_table():
         
         cards_html += """
             </div>
+        """
+        
+        # Add feedback section if available
+        if 'feedback' in row and pd.notna(row['feedback']) and str(row['feedback']).strip():
+            feedback_text = str(row['feedback']).strip()
+            cards_html += f"""
+            <div style="
+                background: rgba(102, 126, 234, 0.15);
+                border: 1px solid rgba(102, 126, 234, 0.3);
+                border-radius: 8px;
+                padding: 15px;
+                margin-top: 15px;
+            ">
+                <h4 style="color: #667eea; margin: 0 0 10px 0; font-size: 16px; display: flex; align-items: center;">
+                    <span style="margin-right: 8px;">💡</span> AI Feedback
+                </h4>
+                <div style="
+                    color: #e0e0e0;
+                    font-size: 14px;
+                    line-height: 1.5;
+                    white-space: pre-line;
+                    max-height: 200px;
+                    overflow-y: auto;
+                    padding: 10px;
+                    background: rgba(0,0,0,0.3);
+                    border-radius: 6px;
+                ">
+                    {feedback_text}
+                </div>
+            </div>
+            """
+        
+        # Add missing requirements section if available
+        if 'missing_requirements' in row and pd.notna(row['missing_requirements']) and str(row['missing_requirements']).strip():
+            missing_reqs = str(row['missing_requirements']).strip()
+            if missing_reqs and missing_reqs != "[]":
+                cards_html += f"""
+                <div style="
+                    background: rgba(244, 67, 54, 0.15);
+                    border: 1px solid rgba(244, 67, 54, 0.3);
+                    border-radius: 8px;
+                    padding: 15px;
+                    margin-top: 10px;
+                ">
+                    <h4 style="color: #f44336; margin: 0 0 10px 0; font-size: 16px; display: flex; align-items: center;">
+                        <span style="margin-right: 8px;"></span> Missing Requirements
+                    </h4>
+                    <div style="
+                        color: #ffcdd2;
+                        font-size: 14px;
+                        line-height: 1.5;
+                        padding: 10px;
+                        background: rgba(244, 67, 54, 0.1);
+                        border-radius: 6px;
+                    ">
+                        {missing_reqs}
+                    </div>
+                </div>
+                """
+        
+        # Add track information
+        if 'track' in row and pd.notna(row['track']):
+            track_name = str(row['track']).replace('_', ' ').title()
+            cards_html += f"""
+            <div style="
+                background: rgba(76, 175, 80, 0.15);
+                border: 1px solid rgba(76, 175, 80, 0.3);
+                border-radius: 8px;
+                padding: 10px;
+                margin-top: 10px;
+                text-align: center;
+            ">
+                <span style="color: #4caf50; font-size: 14px; font-weight: bold;">
+                    🏆 Track: {track_name}
+                </span>
+            </div>
+            """
+        
+        cards_html += """
         </div>
         """
     
-    styled_html = f"""
-    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; margin: 20px 0 10px 0; border-radius: 6px;">
-        <h3>Submission Rankings (All Models Combined)</h3>
-    </div>
-    <div style="max-height: 600px; overflow-y: auto;">
-        {cards_html}
+    # Add final summary section
+    summary_html = f"""
+    <div style="
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 12px;
+        margin-top: 30px;
+        text-align: center;
+    ">
+        <h3 style="margin: 0 0 15px 0;">📋 Evaluation Summary</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+            <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 8px;">
+                <div style="font-size: 24px; font-weight: bold; margin-bottom: 5px;">{total_submissions}</div>
+                <div style="font-size: 14px; opacity: 0.9;">Total Submissions</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 8px;">
+                <div style="font-size: 24px; font-weight: bold; margin-bottom: 5px;">{showing_count}</div>
+                <div style="font-size: 14px; opacity: 0.9;">Top Results Shown</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 8px;">
+                <div style="font-size: 24px; font-weight: bold; margin-bottom: 5px;">{optimal_size_count}</div>
+                <div style="font-size: 14px; opacity: 0.9;">Optimal Size PPTs</div>
+            </div>
+        </div>
+        <div style="
+            background: rgba(255,255,255,0.2);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        ">
+            <strong>📁 All results exported to CSV files for final review and decision making</strong>
+        </div>
     </div>
     """
     
-    return styled_html
+    # Return header + size recommendations + cards + summary
+    return header_html + size_recommendations_html + cards_html + summary_html
 
 def get_per_submission_model_scores():
     """Generate per-submission tables with all model scores."""
@@ -762,6 +984,211 @@ def generate_analytics_charts():
     
     return charts_html
 
+# TRACK MANAGEMENT FUNCTIONS
+def load_custom_tracks():
+    """Load custom tracks from JSON file."""
+    tracks_file = "custom_tracks.json"
+    
+    try:
+        if os.path.exists(tracks_file):
+            with open(tracks_file, 'r') as f:
+                custom_tracks = json.load(f)
+            if custom_tracks:  # If there are custom tracks, return them
+                return custom_tracks
+        
+        # If no custom tracks exist, return empty dict (user must create tracks)
+        return {}
+    except Exception as e:
+        print(f"Error loading custom tracks: {e}")
+        return {}
+
+def save_custom_tracks(tracks):
+    """Save custom tracks to JSON file."""
+    tracks_file = "custom_tracks.json"
+    try:
+        with open(tracks_file, 'w') as f:
+            json.dump(tracks, f, indent=2)
+        return True
+    except Exception as e:
+        print(f"Error saving custom tracks: {e}")
+        return False
+
+def get_track_choices():
+    """Get track choices for dropdown."""
+    tracks = load_custom_tracks()
+    if not tracks:
+        return [("No tracks available - Create one in the Tracks tab", "")]
+    
+    choices = []
+    for track_id, track_data in tracks.items():
+        name = track_data.get('name', track_id)
+        description = track_data.get('description', '')
+        choices.append((f"{name} - {description}", track_id))
+    return choices
+
+def create_track(name, description, uniqueness_weight, completeness_weight, impact_weight, ethics_weight,
+                problem_weight, solution_weight, architecture_weight):
+    """Create a new custom track."""
+    
+    # Validate weights sum to 1.0
+    dim_total = uniqueness_weight + completeness_weight + impact_weight + ethics_weight
+    sec_total = problem_weight + solution_weight + architecture_weight
+    
+    if abs(dim_total - 1.0) > 0.01:
+        return False, f"Dimension weights must sum to 1.0 (currently {dim_total:.3f})"
+    
+    if abs(sec_total - 1.0) > 0.01:
+        return False, f"Section weights must sum to 1.0 (currently {sec_total:.3f})"
+    
+    # Create track ID from name
+    track_id = name.lower().replace(' ', '_').replace('-', '_')
+    
+    # Load existing tracks
+    tracks = load_custom_tracks()
+    
+    # Create new track
+    tracks[track_id] = {
+        "name": name,
+        "description": description,
+        "dimensions": {
+            "uniqueness": uniqueness_weight,
+            "Completeness of the solution": completeness_weight,
+            "impact on the theme chosen": impact_weight,
+            "ethical consideration": ethics_weight,
+        },
+        "section_weights": {
+            "problem_statement": problem_weight,
+            "proposed_solution": solution_weight,
+            "technical_architecture": architecture_weight,
+        }
+    }
+    
+    # Save tracks
+    if save_custom_tracks(tracks):
+        return True, f"Track '{name}' created successfully!"
+    else:
+        return False, "Failed to save track"
+
+def delete_track(track_id):
+    """Delete a custom track."""
+    if not track_id:
+        return False, "No track selected"
+    
+    tracks = load_custom_tracks()
+    if track_id in tracks:
+        del tracks[track_id]
+        if save_custom_tracks(tracks):
+            return True, f"Track deleted successfully!"
+        else:
+            return False, "Failed to save changes"
+    else:
+        return False, "Track not found"
+
+def get_track_analytics():
+    """Generate analytics for all tracks."""
+    tracks = load_custom_tracks()
+    
+    if not tracks:
+        return """
+        <div style='padding: 20px; text-align: center;'>
+            <h2 style='color: #667eea; margin-bottom: 30px;'>Track Configuration Analytics</h2>
+            <div style='background: #f8f9fa; padding: 30px; border-radius: 12px; border: 2px solid #dee2e6;'>
+                <h3 style='color: #6c757d;'>No Tracks Available</h3>
+                <p style='color: #6c757d; margin-bottom: 20px;'>Create your first track to see analytics here.</p>
+                <div style='color: #495057; font-size: 14px;'>
+                    Use the Create New Track section to get started.
+                </div>
+            </div>
+        </div>
+        """
+    
+    html = "<div style='padding: 20px;'>"
+    html += "<h2 style='color: #667eea; margin-bottom: 30px;'>Track Configuration Analytics</h2>"
+    
+    for track_id, track_data in tracks.items():
+        name = track_data.get('name', track_id)
+        description = track_data.get('description', '')
+        dimensions = track_data.get('dimensions', {})
+        section_weights = track_data.get('section_weights', {})
+        
+        # All tracks are custom now
+        track_type = "Custom"
+        border_color = "#28a745"
+        
+        html += f"""
+        <div style="
+            border: 2px solid {border_color};
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        ">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="color: #333; margin: 0;">{name}</h3>
+                <span style="
+                    background: {border_color};
+                    color: white;
+                    padding: 5px 12px;
+                    border-radius: 15px;
+                    font-size: 12px;
+                    font-weight: bold;
+                ">{track_type}</span>
+            </div>
+            
+            <p style="color: #666; margin-bottom: 20px; font-style: italic;">{description}</p>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div>
+                    <h4 style="color: #667eea; margin-bottom: 10px;">Dimension Weights</h4>
+                    <div style="background: white; padding: 15px; border-radius: 8px;">
+        """
+        
+        for dim, weight in dimensions.items():
+            percentage = weight * 100
+            html += f"""
+                        <div style="margin: 8px 0;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                <span style="font-size: 14px; color: #333;">{dim.replace('_', ' ').title()}</span>
+                                <span style="font-weight: bold; color: #667eea;">{percentage:.1f}%</span>
+                            </div>
+                            <div style="background: #e9ecef; height: 6px; border-radius: 3px;">
+                                <div style="background: #667eea; height: 6px; border-radius: 3px; width: {percentage}%;"></div>
+                            </div>
+                        </div>
+            """
+        
+        html += """
+                    </div>
+                </div>
+                <div>
+                    <h4 style="color: #764ba2; margin-bottom: 10px;">Section Weights</h4>
+                    <div style="background: white; padding: 15px; border-radius: 8px;">
+        """
+        
+        for section, weight in section_weights.items():
+            percentage = weight * 100
+            html += f"""
+                        <div style="margin: 8px 0;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                <span style="font-size: 14px; color: #333;">{section.replace('_', ' ').title()}</span>
+                                <span style="font-weight: bold; color: #764ba2;">{percentage:.1f}%</span>
+                            </div>
+                            <div style="background: #e9ecef; height: 6px; border-radius: 3px;">
+                                <div style="background: #764ba2; height: 6px; border-radius: 3px; width: {percentage}%;"></div>
+                            </div>
+                        </div>
+            """
+        
+        html += """
+                    </div>
+                </div>
+            </div>
+        </div>
+        """
+    
+    html += "</div>"
+    return html
+
 def create_interface():
     """Create the comprehensive Gradio interface with navigation."""
     
@@ -829,15 +1256,23 @@ def create_interface():
 
         # File Upload & Actions
         with gr.Row(equal_height=True):
-            with gr.Column(scale=1):
-                gr.Markdown("### **Upload Your PPT Files**")
+            with gr.Column(scale=3):  # Made larger from scale=1
+                gr.Markdown("### **Upload Your PPT Files** (All uploaded files must be from the same track)")
                 file_upload = gr.File(
-                    label="Select PPT/PPTX Files",
+                    label="UPLOAD PPT FILES",
                     file_count="multiple",
                     file_types=[".ppt", ".pptx"],
-                    height=240,
+                    height=350,  # Made much larger from 200
                     elem_id="custom-file-upload"
                 )
+                
+                theme_dropdown = gr.Dropdown(
+                    label="Select Evaluation Track",
+                    choices=get_track_choices(),
+                    value=None,  # No default value since no predefined tracks
+                    info="Select a track or create a custom one in the Tracks tab"
+                )
+                
                 # Add custom CSS for more rounded edges
                 interface_css = """
                 #custom-file-upload .form-control, 
@@ -852,9 +1287,9 @@ def create_interface():
                     variant="primary",
                     size="lg"
                 )
-            with gr.Column(scale=2):
+            with gr.Column(scale=1):  # Made smaller from scale=2
                 status_output = gr.HTML(
-                    label="Processing Status",
+                    label="Evaluation Progress",
                     value="<em>Click 'Start Evaluation' to begin processing...</em>",
                     visible=True,
                     elem_id="status-output"
@@ -897,138 +1332,268 @@ def create_interface():
                     label="Analytics Charts",
                     value="<em>No data available for analytics.</em>"
                 )
+            
+            with gr.Tab("Tracks", id="tracks"):
+                gr.Markdown("### **Track Management & Configuration**")
+                
+                with gr.Row():
+                    with gr.Column(scale=1):
+                        gr.Markdown("#### **Create New Track**")
+                        
+                        track_name = gr.Textbox(
+                            label="Track Name",
+                            placeholder="e.g., Fintech Innovation",
+                            info="Give your track a descriptive name"
+                        )
+                        
+                        track_description = gr.Textbox(
+                            label="Track Description", 
+                            placeholder="e.g., Focus on financial technology and innovation",
+                            info="Describe the focus area of this track"
+                        )
+                        
+                        gr.Markdown("**Dimension Weights** (must sum to 1.0)")
+                        with gr.Row():
+                            uniqueness_weight = gr.Number(
+                                label="Uniqueness",
+                                value=0.25,
+                                minimum=0,
+                                maximum=1,
+                                step=0.01
+                            )
+                            completeness_weight = gr.Number(
+                                label="Completeness",
+                                value=0.30,
+                                minimum=0,
+                                maximum=1,
+                                step=0.01
+                            )
+                        with gr.Row():
+                            impact_weight = gr.Number(
+                                label="Impact on Theme",
+                                value=0.30,
+                                minimum=0,
+                                maximum=1,
+                                step=0.01
+                            )
+                            ethics_weight = gr.Number(
+                                label="Ethical Consideration",
+                                value=0.15,
+                                minimum=0,
+                                maximum=1,
+                                step=0.01
+                            )
+                        
+                        gr.Markdown("**Section Weights** (must sum to 1.0)")
+                        with gr.Row():
+                            problem_weight = gr.Number(
+                                label="Problem Statement",
+                                value=0.30,
+                                minimum=0,
+                                maximum=1,
+                                step=0.01
+                            )
+                            solution_weight = gr.Number(
+                                label="Proposed Solution",
+                                value=0.35,
+                                minimum=0,
+                                maximum=1,
+                                step=0.01
+                            )
+                            architecture_weight = gr.Number(
+                                label="Technical Architecture",
+                                value=0.35,
+                                minimum=0,
+                                maximum=1,
+                                step=0.01
+                            )
+                        
+                        with gr.Row():
+                            create_track_btn = gr.Button("Create Track", variant="primary")
+                            refresh_tracks_btn = gr.Button("Refresh Tracks", variant="secondary")
+                        
+                        track_status = gr.HTML(
+                            value="<em>Configure weights and click 'Create Track'</em>"
+                        )
+                        
+                        gr.Markdown("#### **Delete Track**")
+                        delete_track_dropdown = gr.Dropdown(
+                            label="Select Track to Delete",
+                            choices=get_track_choices(),
+                            info="Select any track to delete"
+                        )
+                        delete_track_btn = gr.Button("Delete Track", variant="stop")
+                    
+                    with gr.Column(scale=2):
+                        track_analytics_output = gr.HTML(
+                            label="Track Analytics",
+                            value=get_track_analytics()
+                        )
 
         # Event Handlers
-        def start_and_run_evaluation(files):
-            print(f"Button clicked! Files received: {files}")
+        def start_and_run_evaluation(files, theme):
+            print(f"Button clicked! Files received: {files}, Theme: {theme}")
             if not files:
                 print("No files provided")
                 return "Please upload at least one PPT file", gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
             
-            print(f"Processing {len(files)} files...")
+            if not theme:
+                error_html = """
+                <div style="background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; border: 1px solid #f5c6cb;">
+                    <strong>❌ No Track Selected</strong><br>
+                    Please create and select a track in the Tracks tab before starting evaluation.
+                </div>
+                """
+                return error_html, gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
             
-            # Show immediate processing status
-            processing_html = """
-            <div style="
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                padding: 20px;
-                border-radius: 12px;
-                margin: 10px 0;
-                text-align: center;
-                animation: pulse 2s infinite;
-            ">
-                <h3>🔄 Processing Your Files...</h3>
-                <p>Please wait while we analyze your presentations</p>
-                <div style="
-                    background: rgba(255,255,255,0.2);
-                    padding: 10px;
-                    border-radius: 8px;
-                    margin-top: 15px;
-                    font-family: monospace;
-                ">
-                    Starting evaluation pipeline...
+            print(f"Processing {len(files)} files with {theme} theme...")
+            
+            # Step 1: Initial setup
+            setup_html = f"""
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 8px; margin: 5px 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <strong>🚀 Starting Evaluation</strong><br>
+                        <small>Track: {theme} | Files: {len(files)}</small>
+                    </div>
+                    <div style="width: 20px; height: 20px; border: 2px solid #fff; border-top: 2px solid transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
                 </div>
             </div>
-            <style>
-                @keyframes pulse {
-                    0% { opacity: 1; }
-                    50% { opacity: 0.7; }
-                    100% { opacity: 1; }
-                }
-            </style>
+            <style>@keyframes spin {{ 0% {{ transform: rotate(0deg); }} 100% {{ transform: rotate(360deg); }} }}</style>
             """
+            yield setup_html, gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
             
-            # Return initial processing state
-            yield processing_html, gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
-            
-            # Process uploads
-            status = process_uploads(files)
-            print(f"Processing completed with status: {status[:100]}...")
-            
-            # After processing, automatically refresh all tabs with results
-            if "Pipeline completed successfully!" in status:
-                print("Refreshing all tabs with new results...")
-                # Refresh submissions data
-                submissions_html = get_submissions_table()
-                per_submission_html = get_per_submission_model_scores()
+            # Step 2: File processing
+            try:
+                temp_dir = pipeline.setup_temp_environment()
+                saved_files = pipeline.save_uploaded_files(files)
                 
-                # Refresh models data
-                models = get_available_models()
-                first_model = models[0] if models else None
-                model_scores_html = get_model_scores_table(first_model) if first_model else "<p>No models available</p>"
-                
-                # Refresh analytics
-                analytics_html = generate_analytics_charts()
-                
-                # Create collapsible summary
-                collapsed_status = f"""
-                <details>
-                    <summary style="
-                        cursor: pointer;
-                        padding: 15px;
-                        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-                        color: white;
-                        border-radius: 8px;
-                        margin: 10px 0;
-                        display: block;
-                        font-weight: bold;
-                    ">
-                        ✅ Processing Complete - Click to view details
-                    </summary>
-                    <div style="
-                        padding: 15px;
-                        background: #f8f9fa;
-                        border-radius: 8px;
-                        margin-top: 5px;
-                        font-family: monospace;
-                        white-space: pre-wrap;
-                        max-height: 300px;
-                        overflow-y: auto;
-                        border: 1px solid #dee2e6;
-                    ">{status}</div>
-                </details>
-                """
-                
-                yield (
-                    collapsed_status,
-                    submissions_html,
-                    per_submission_html,
-                    gr.update(choices=models, value=first_model),
-                    model_scores_html,
-                    analytics_html
-                )
-            else:
-                # Show error status
-                error_html = f"""
-                <div style="
-                    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-                    color: white;
-                    padding: 20px;
-                    border-radius: 12px;
-                    margin: 10px 0;
-                ">
-                    <h3>❌ Processing Failed</h3>
-                    <div style="
-                        background: rgba(255,255,255,0.2);
-                        padding: 15px;
-                        border-radius: 8px;
-                        margin-top: 15px;
-                        font-family: monospace;
-                        white-space: pre-wrap;
-                        max-height: 200px;
-                        overflow-y: auto;
-                    ">{status}</div>
+                file_process_html = setup_html + f"""
+                <div style="background: #d1ecf1; color: #0c5460; padding: 12px; border-radius: 8px; margin: 5px 0;">
+                    <strong>📁 Files Processed</strong><br>
+                    <small>Saved {len(saved_files)} files to processing directory</small>
                 </div>
                 """
-                yield (
-                    error_html,
-                    gr.update(),
-                    gr.update(), 
-                    gr.update(),
-                    gr.update(),
-                    gr.update()
-                )
+                yield file_process_html, gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
+                
+                # Step 3: Document processing
+                doc_process_html = file_process_html + f"""
+                <div style="background: #fff3cd; color: #856404; padding: 12px; border-radius: 8px; margin: 5px 0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong>📄 Document Processing</strong><br>
+                            <small>Extracting text and images...</small>
+                        </div>
+                        <div style="width: 16px; height: 16px; border: 2px solid #856404; border-top: 2px solid transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                    </div>
+                </div>
+                """
+                yield doc_process_html, gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
+                
+                success, msg = pipeline.run_document_processing()
+                if not success:
+                    error_html = doc_process_html + f"""
+                    <div style="background: #f8d7da; color: #721c24; padding: 12px; border-radius: 8px; margin: 5px 0;">
+                        <strong>❌ Document Processing Failed</strong><br>
+                        <small>{msg}</small>
+                    </div>
+                    """
+                    yield error_html, gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
+                    return
+                
+                eval_start_html = doc_process_html + f"""
+                <div style="background: #d4edda; color: #155724; padding: 12px; border-radius: 8px; margin: 5px 0;">
+                    <strong>Document Processing Complete</strong><br>
+                    <small>Text and images extracted successfully</small>
+                </div>
+                <div style="background: #e2e3e5; color: #383d41; padding: 12px; border-radius: 8px; margin: 5px 0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong>AI Evaluation Starting</strong><br>
+                            <small>Running evaluation with {theme} track settings...</small>
+                        </div>
+                        <div style="width: 16px; height: 16px; border: 2px solid #383d41; border-top: 2px solid transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                    </div>
+                </div>
+                """
+                yield eval_start_html, gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
+                
+                success, eval_msg = pipeline.run_evaluation(theme)
+                if not success:
+                    error_html = eval_start_html + f"""
+                    <div style="background: #f8d7da; color: #721c24; padding: 12px; border-radius: 8px; margin: 5px 0;">
+                        <strong>AI Evaluation Failed</strong><br>
+                        <small>{eval_msg}</small>
+                    </div>
+                    """
+                    yield error_html, gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
+                    return
+                
+                # Step 5: Loading results
+                results_load_html = eval_start_html + f"""
+                <div style="background: #d4edda; color: #155724; padding: 12px; border-radius: 8px; margin: 5px 0;">
+                    <strong>AI Evaluation Complete</strong><br>
+                    <small>Scoring and analysis finished</small>
+                </div>
+                <div style="background: #cce5ff; color: #004085; padding: 12px; border-radius: 8px; margin: 5px 0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong>📊 Loading Results</strong><br>
+                            <small>Preparing final rankings...</small>
+                        </div>
+                        <div style="width: 16px; height: 16px; border: 2px solid #004085; border-top: 2px solid transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                    </div>
+                </div>
+                """
+                yield results_load_html, gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
+                
+                # Load and refresh results
+                results = pipeline.load_results()
+                
+                if 'main_scores' in results:
+                    # Final success with results refresh
+                    success_html = f"""
+                    <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 20px; border-radius: 12px; text-align: center;">
+                        <h3>🎉 Evaluation Complete!</h3>
+                        <p><strong>Track:</strong> {theme} | <strong>Submissions:</strong> {len(results['main_scores'])}</p>
+                        <p>Results loaded successfully. Check the Submissions tab for rankings!</p>
+                    </div>
+                    """
+                    
+                    # Refresh all data
+                    submissions_html = get_submissions_table()
+                    per_submission_html = get_per_submission_model_scores()
+                    models = get_available_models()
+                    first_model = models[0] if models else None
+                    model_scores_html = get_model_scores_table(first_model) if first_model else "<p>No models available</p>"
+                    analytics_html = generate_analytics_charts()
+                    
+                    yield (
+                        success_html,
+                        submissions_html,
+                        per_submission_html,
+                        gr.update(choices=models, value=first_model),
+                        model_scores_html,
+                        analytics_html
+                    )
+                else:
+                    error_html = results_load_html + f"""
+                    <div style="background: #f8d7da; color: #721c24; padding: 12px; border-radius: 8px; margin: 5px 0;">
+                        <strong>❌ No Results Found</strong><br>
+                        <small>Evaluation completed but no results were generated</small>
+                    </div>
+                    """
+                    yield error_html, gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
+                    
+            except Exception as e:
+                error_html = f"""
+                <div style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white; padding: 20px; border-radius: 12px;">
+                    <h3>❌ Processing Failed</h3>
+                    <p><strong>Error:</strong> {str(e)}</p>
+                    <small>Please try again or check the file formats</small>
+                </div>
+                """
+                yield error_html, gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
         
         def refresh_submissions():
             submissions_html = get_submissions_table()
@@ -1064,7 +1629,7 @@ def create_interface():
         # Button events
         evaluate_btn.click(
             fn=start_and_run_evaluation,
-            inputs=[file_upload],
+            inputs=[file_upload, theme_dropdown],
             outputs=[status_output, submissions_output, per_submission_output, model_radio, model_output, analytics_output]
         )
 
@@ -1077,6 +1642,93 @@ def create_interface():
         refresh_analytics_btn.click(
             fn=refresh_analytics,
             outputs=[analytics_output]
+        )
+        
+        # Track management event handlers
+        def handle_create_track(name, description, uniqueness_w, completeness_w, impact_w, ethics_w,
+                               problem_w, solution_w, architecture_w):
+            """Handle track creation."""
+            if not name.strip():
+                return "<div style='color: red;'>Please enter a track name</div>", gr.update(), gr.update(), gr.update()
+            
+            success, message = create_track(
+                name.strip(), description.strip(),
+                uniqueness_w, completeness_w, impact_w, ethics_w,
+                problem_w, solution_w, architecture_w
+            )
+            
+            if success:
+                # Refresh all track-related components
+                new_choices = get_track_choices()
+                
+                return (
+                    f"<div style='color: green; padding: 10px; background: #d4edda; border-radius: 5px;'>{message}</div>",
+                    gr.update(choices=new_choices),
+                    get_track_analytics(),
+                    gr.update(choices=new_choices)  # Refresh main dropdown
+                )
+            else:
+                return (
+                    f"<div style='color: red; padding: 10px; background: #f8d7da; border-radius: 5px;'>{message}</div>",
+                    gr.update(),
+                    gr.update(),
+                    gr.update()
+                )
+        
+        def handle_delete_track(track_id):
+            """Handle track deletion."""
+            if not track_id:
+                return "<div style='color: red;'>Please select a track to delete</div>", gr.update(), gr.update(), gr.update()
+            
+            success, message = delete_track(track_id)
+            
+            if success:
+                # Refresh all track-related components
+                new_choices = get_track_choices()
+                
+                return (
+                    f"<div style='color: green; padding: 10px; background: #d4edda; border-radius: 5px;'>{message}</div>",
+                    gr.update(choices=new_choices, value=None),
+                    get_track_analytics(),
+                    gr.update(choices=new_choices)  # Refresh main dropdown
+                )
+            else:
+                return (
+                    f"<div style='color: red; padding: 10px; background: #f8d7da; border-radius: 5px;'>{message}</div>",
+                    gr.update(),
+                    gr.update(),
+                    gr.update()
+                )
+        
+        def refresh_track_data():
+            """Refresh all track-related data."""
+            new_choices = get_track_choices()
+            
+            return (
+                gr.update(choices=new_choices),
+                get_track_analytics(),
+                gr.update(choices=new_choices)  # Refresh main dropdown
+            )
+        
+        create_track_btn.click(
+            fn=handle_create_track,
+            inputs=[
+                track_name, track_description,
+                uniqueness_weight, completeness_weight, impact_weight, ethics_weight,
+                problem_weight, solution_weight, architecture_weight
+            ],
+            outputs=[track_status, delete_track_dropdown, track_analytics_output, theme_dropdown]
+        )
+        
+        delete_track_btn.click(
+            fn=handle_delete_track,
+            inputs=[delete_track_dropdown],
+            outputs=[track_status, delete_track_dropdown, track_analytics_output, theme_dropdown]
+        )
+        
+        refresh_tracks_btn.click(
+            fn=refresh_track_data,
+            outputs=[delete_track_dropdown, track_analytics_output, theme_dropdown]
         )
 
     return interface
@@ -1098,6 +1750,8 @@ def main():
         
         print("Starting AI Content Evaluator...")
         print("Upload PPT files and navigate between tabs to view results")
+        print("Recommendation: Keep PPT files under 5MB for optimal processing")
+        print("Final results: Only top 15-20 presentations will be shown with CSV export")
         
         # Try to find an available port
         import socket

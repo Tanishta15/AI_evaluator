@@ -22,13 +22,185 @@ MODEL_SCORE_ROWS: List[Dict[str, Any]] = []
 
 TARGET_SECTIONS = ["problem_statement", "proposed_solution", "technical_architecture"]
 
-# Canonical scoring dimensions (use these exact labels everywhere)
-DIMENSIONS = {
-    "uniqueness": 0.25,
-    "Completeness of the solution": 0.30,
-    "impact on the theme chosen": 0.30,
-    "ethical consideration": 0.05,
+# Theme-specific scoring configurations with detailed criteria
+THEME_CONFIGS = {
+    "default": {
+        "name": "General Hackathon",
+        "dimensions": {
+            "uniqueness": 0.25,
+            "Completeness of the solution": 0.30,
+            "impact on the theme chosen": 0.30,
+            "ethical consideration": 0.15,
+        },
+        "section_weights": {
+            "problem_statement": 0.30,
+            "proposed_solution": 0.35,
+            "technical_architecture": 0.35,
+        },
+        "detailed_criteria": {
+            "completeness": [
+                "Is there a working prototype?",
+                "Are DPK/IBM Granite models used (RAG/Agentic Usage)?",
+                "Is IBM or AWS or both mentioned and used?",
+                "Are the must-have technologies clearly identified and used?",
+                "If using Traditional AI, is DPK usage implemented?",
+                "How does this differ from other LLMs?",
+                "How is this better than simple LLMs/Gen AI?"
+            ],
+            "impact": [
+                "What is the potential positive impact on the chosen theme?",
+                "Why is this solution required? What problem does it solve?",
+                "How does the solution make things better?",
+                "What positive/negative deviations can be seen?",
+                "Is the solution scalable? Where else can it be used?",
+                "What can this do that a simple Google search cannot?",
+                "How would end-users actually use it?"
+            ],
+            "uniqueness": [
+                "What is unique/original/creative in this solution?",
+                "Is the problem statement clearly defined and realistic?",
+                "Is the suggested technology feasible to implement?",
+                "How have you tested for bias in your solution?"
+            ],
+            "presentation": [
+                "Is the presentation clear, concise and structured?",
+                "Are 'Why', 'What', and 'How' explained?",
+                "Are services used clearly mentioned?",
+                "Is the LLM used specified?",
+                "Is training content used documented?",
+                "Is the architecture well-explained?"
+            ],
+            "ethics": [
+                "How does the solution consider ethical implications?",
+                "Is bias in AI addressed?",
+                "Are data privacy concerns handled?",
+                "What broader social impact is considered?",
+                "Is it ethical to implement this idea?",
+                "Are gender neutrality and racial/religious bias considerations included?"
+            ]
+        }
+    },
+    "sustainability": {
+        "name": "Sustainability & Climate",
+        "dimensions": {
+            "uniqueness": 0.20,
+            "Completeness of the solution": 0.25,
+            "impact on the theme chosen": 0.40,
+            "ethical consideration": 0.15,
+        },
+        "section_weights": {
+            "problem_statement": 0.35,
+            "proposed_solution": 0.30,
+            "technical_architecture": 0.35,
+        },
+        "detailed_criteria": {
+            "impact_focus": [
+                "Environmental impact reduction potential",
+                "Carbon footprint considerations",
+                "Sustainable development goals alignment",
+                "Climate change mitigation strategies",
+                "Resource optimization and waste reduction"
+            ]
+        }
+    },
+    "healthcare": {
+        "name": "Healthcare & Life Sciences",
+        "dimensions": {
+            "uniqueness": 0.20,
+            "Completeness of the solution": 0.35,
+            "impact on the theme chosen": 0.30,
+            "ethical consideration": 0.15,
+        },
+        "section_weights": {
+            "problem_statement": 0.30,
+            "proposed_solution": 0.40,
+            "technical_architecture": 0.30,
+        },
+        "detailed_criteria": {
+            "healthcare_focus": [
+                "Patient safety and care improvement",
+                "Medical data privacy compliance",
+                "Healthcare accessibility enhancement",
+                "Clinical validation and testing",
+                "Regulatory compliance considerations"
+            ]
+        }
+    },
+    "fintech": {
+        "name": "Financial Technology",
+        "dimensions": {
+            "uniqueness": 0.30,
+            "Completeness of the solution": 0.35,
+            "impact on the theme chosen": 0.25,
+            "ethical consideration": 0.10,
+        },
+        "section_weights": {
+            "problem_statement": 0.25,
+            "proposed_solution": 0.35,
+            "technical_architecture": 0.40,
+        },
+        "detailed_criteria": {
+            "fintech_focus": [
+                "Financial security and fraud prevention",
+                "Regulatory compliance (KYC/AML)",
+                "Financial inclusion and accessibility",
+                "Transaction efficiency and cost reduction",
+                "Risk management and assessment"
+            ]
+        }
+    },
+    "education": {
+        "name": "Education & Learning",
+        "dimensions": {
+            "uniqueness": 0.25,
+            "Completeness of the solution": 0.30,
+            "impact on the theme chosen": 0.35,
+            "ethical consideration": 0.10,
+        },
+        "section_weights": {
+            "problem_statement": 0.30,
+            "proposed_solution": 0.35,
+            "technical_architecture": 0.35,
+        },
+        "detailed_criteria": {
+            "education_focus": [
+                "Learning outcome improvement",
+                "Educational accessibility and inclusion",
+                "Personalized learning capabilities",
+                "Teacher and student engagement",
+                "Educational equity considerations"
+            ]
+        }
+    },
+    "ai_ml": {
+        "name": "AI & Machine Learning Innovation",
+        "dimensions": {
+            "uniqueness": 0.35,
+            "Completeness of the solution": 0.30,
+            "impact on the theme chosen": 0.25,
+            "ethical consideration": 0.10,
+        },
+        "section_weights": {
+            "problem_statement": 0.25,
+            "proposed_solution": 0.30,
+            "technical_architecture": 0.45,
+        },
+        "detailed_criteria": {
+            "ai_focus": [
+                "Novel AI/ML algorithm implementation",
+                "Model performance and accuracy",
+                "AI bias detection and mitigation",
+                "Computational efficiency",
+                "Real-world AI application impact"
+            ]
+        }
+    }
 }
+
+# Global variables to store current configuration
+CURRENT_THEME = "default"
+DIMENSIONS = THEME_CONFIGS[CURRENT_THEME]["dimensions"]
+SECTION_WEIGHTS = THEME_CONFIGS[CURRENT_THEME]["section_weights"]
 
 # Regex for mapping slide titles → sections (when files are slide-wise)
 TITLE_PATTERNS = {
@@ -42,7 +214,7 @@ TEXT_MODEL_IDS = [
     "ibm/granite-3-2-8b-instruct",
     "ibm/granite-3-2b-instruct",
     "meta-llama/llama-3-3-70b-instruct",
-    "ibm/granite-3-3-8b-instruct",  # Replaced mistral with reliable granite model
+    "mistralai/mistral-large",  # Replaced granite with Mistral model
 ]
 
 # Vision LLMs for images (send image + question)
@@ -58,15 +230,83 @@ GEN_PARAMS = {
     GenParams.REPETITION_PENALTY: 1.1,
 }
 
-TEXT_PROMPT = """You are a strict hackathon evaluator. Rate the SECTION_CONTENT for "{section_name}".
-Scores must be 0-10 (decimals allowed) for:
-- uniqueness
-- Completeness of the solution
-- impact on the theme chosen
-- ethical consideration
+def get_detailed_prompt(section_name: str, theme: str = "default") -> str:
+    """Generate detailed evaluation prompt based on theme and section."""
+    theme_config = THEME_CONFIGS.get(theme, THEME_CONFIGS["default"])
+    base_criteria = theme_config.get("detailed_criteria", {})
+    
+    # Common criteria for all themes
+    completeness_criteria = base_criteria.get("completeness", [
+        "Is there a working prototype?",
+        "Are DPK/IBM Granite models used (RAG/Agentic Usage)?",
+        "Is IBM or AWS or both mentioned and used?",
+        "Are the must-have technologies clearly identified and used?",
+        "If using Traditional AI, is DPK usage implemented?",
+        "How does this differ from other LLMs?",
+        "How is this better than simple LLMs/Gen AI?"
+    ])
+    
+    impact_criteria = base_criteria.get("impact", [
+        "What is the potential positive impact on the chosen theme?",
+        "Why is this solution required? What problem does it solve?",
+        "How does the solution make things better?",
+        "What positive/negative deviations can be seen?",
+        "Is the solution scalable? Where else can it be used?",
+        "What can this do that a simple Google search cannot?",
+        "How would end-users actually use it?"
+    ])
+    
+    uniqueness_criteria = base_criteria.get("uniqueness", [
+        "What is unique/original/creative in this solution?",
+        "Is the problem statement clearly defined and realistic?",
+        "Is the suggested technology feasible to implement?",
+        "How have you tested for bias in your solution?"
+    ])
+    
+    ethics_criteria = base_criteria.get("ethics", [
+        "How does the solution consider ethical implications?",
+        "Is bias in AI addressed?",
+        "Are data privacy concerns handled?",
+        "What broader social impact is considered?",
+        "Is it ethical to implement this idea?",
+        "Are gender neutrality and racial/religious bias considerations included?"
+    ])
+    
+    # Add theme-specific criteria
+    theme_specific = ""
+    for key, criteria_list in base_criteria.items():
+        if key not in ["completeness", "impact", "uniqueness", "ethics", "presentation"]:
+            theme_specific += f"\nTheme-specific considerations ({key}):\n"
+            theme_specific += "\n".join(f"- {criterion}" for criterion in criteria_list)
+    
+    return f"""You are a strict hackathon evaluator for {theme_config['name']} track. 
+Rate the SECTION_CONTENT for "{section_name}" based on the following detailed criteria:
+
+COMPLETENESS OF SOLUTION (Consider these aspects):
+{chr(10).join(f"- {criterion}" for criterion in completeness_criteria)}
+
+IMPACT ON THEME (Evaluate these factors):
+{chr(10).join(f"- {criterion}" for criterion in impact_criteria)}
+
+UNIQUENESS/ORIGINALITY (Assess these elements):
+{chr(10).join(f"- {criterion}" for criterion in uniqueness_criteria)}
+
+ETHICAL CONSIDERATIONS (Review these aspects):
+{chr(10).join(f"- {criterion}" for criterion in ethics_criteria)}
+
+{theme_specific}
+
+REQUIRED ELEMENTS TO CHECK:
+- YouTube video link (Private with "anybody with the link" access)
+- Must mention IBM or AWS or both
+- Must-have technologies clearly identified
+- Working prototype evidence
+- Bias testing methodology
 
 Rules:
 - Judge ONLY what is provided. If missing/irrelevant => 0.
+- Provide specific feedback on what's good and what can be improved.
+- Check for required elements and deduct points if missing.
 - Respond as pure JSON, exactly:
 {{
   "section": "{section_name}",
@@ -76,16 +316,24 @@ Rules:
     "impact on the theme chosen": <float>,
     "ethical consideration": <float>
   }},
-  "notes": "<1-2 line justification>"
+  "notes": "<1-2 line justification>",
+  "feedback": {{
+    "strengths": "<what's good about this section>",
+    "improvements": "<specific areas for improvement, mention missing required elements>"
+  }},
+  "missing_requirements": [<list of missing required elements>]
 }}
 
 SECTION_CONTENT:
 \"\"\"{section_text}\"\"\""""
 
+TEXT_PROMPT = get_detailed_prompt("{section_name}", CURRENT_THEME)
+
 VISION_USER_QUERY = (
     "Evaluate this technical architecture image for a hackathon PPT. "
     "Rate (0-10) the same criteria: uniqueness, Completeness of the solution, impact on the theme chosen, ethical consideration. "
-    "Return JSON ONLY with the exact schema used before. Be concise in 'notes'."
+    "Provide specific feedback on what's good about the diagram and what can be improved. "
+    "Return JSON ONLY with the exact schema used before, including 'feedback' with 'strengths' and 'improvements'. Be concise in 'notes'."
 )
 
 # Column hints when data already normalized
@@ -99,11 +347,68 @@ COL_HINTS = {
     "content": ["content", "text"],
 }
 
-# =========================
-# Helpers
-# =========================
-
 class LLMReplyError(Exception): pass
+
+def load_theme_config(theme_name: str = None, custom_config: Dict = None) -> None:
+    """Load theme-specific configuration, custom configuration, or custom tracks."""
+    global CURRENT_THEME, DIMENSIONS, SECTION_WEIGHTS
+    
+    # Try to load custom tracks from file
+    custom_tracks = {}
+    try:
+        if os.path.exists("custom_tracks.json"):
+            with open("custom_tracks.json", 'r') as f:
+                custom_tracks = json.load(f)
+    except Exception as e:
+        print(f"Warning: Could not load custom tracks: {e}")
+    
+    # Merge custom tracks with built-in themes
+    all_themes = THEME_CONFIGS.copy()
+    all_themes.update(custom_tracks)
+    
+    if custom_config:
+        # Use custom configuration
+        CURRENT_THEME = "custom"
+        DIMENSIONS = custom_config.get("dimensions", THEME_CONFIGS["default"]["dimensions"])
+        SECTION_WEIGHTS = custom_config.get("section_weights", THEME_CONFIGS["default"]["section_weights"])
+        print(f"Loaded custom configuration")
+    elif theme_name and theme_name in all_themes:
+        # Use predefined or custom theme
+        CURRENT_THEME = theme_name
+        DIMENSIONS = all_themes[theme_name]["dimensions"]
+        SECTION_WEIGHTS = all_themes[theme_name]["section_weights"]
+        track_type = "custom" if theme_name in custom_tracks else "built-in"
+        print(f"Loaded {track_type} theme configuration: {theme_name}")
+    else:
+        # Use default
+        CURRENT_THEME = "default"
+        DIMENSIONS = THEME_CONFIGS["default"]["dimensions"]
+        SECTION_WEIGHTS = THEME_CONFIGS["default"]["section_weights"]
+        print(f"Using default configuration (theme '{theme_name}' not found)")
+    
+    # Validate weights sum to 1.0
+    dim_sum = sum(DIMENSIONS.values())
+    sec_sum = sum(SECTION_WEIGHTS.values())
+    
+    if abs(dim_sum - 1.0) > 0.01:
+        print(f"Warning: Dimension weights sum to {dim_sum:.3f}, not 1.0")
+    if abs(sec_sum - 1.0) > 0.01:
+        print(f"Warning: Section weights sum to {sec_sum:.3f}, not 1.0")
+    
+    print(f"Current dimensions: {DIMENSIONS}")
+    print(f"Current section weights: {SECTION_WEIGHTS}")
+
+def get_available_themes() -> List[str]:
+    """Get list of available theme configurations."""
+    return list(THEME_CONFIGS.keys())
+
+def create_custom_config(dimensions: Dict[str, float] = None, section_weights: Dict[str, float] = None) -> Dict:
+    """Create a custom configuration dictionary."""
+    config = {
+        "dimensions": dimensions or THEME_CONFIGS["default"]["dimensions"].copy(),
+        "section_weights": section_weights or THEME_CONFIGS["default"]["section_weights"].copy()
+    }
+    return config
 
 def env_client() -> APIClient:
     load_dotenv()
@@ -197,7 +502,7 @@ def normalize_scores(raw: Dict[str, Any]) -> Dict[str, float]:
 @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=8),
        retry=retry_if_exception_type((LLMReplyError, TimeoutError)))
 def score_text(mi: ModelInference, section_name: str, section_text: str) -> Dict[str, Any]:
-    prompt = TEXT_PROMPT.format(section_name=section_name, section_text=section_text)
+    prompt = get_detailed_prompt(section_name, CURRENT_THEME).format(section_name=section_name, section_text=section_text)
     resp = mi.generate_text(prompt=prompt, params=GEN_PARAMS, raw_response=True)
     text = resp["results"][0]["generated_text"] if isinstance(resp, dict) else str(resp)
     s, e = text.find("{"), text.rfind("}")
@@ -227,18 +532,54 @@ def score_vision(mi: ModelInference, img_b64: str) -> Dict[str, Any]:
     data["section"] = "technical_architecture"
     return data
 
-def ensemble(scores_list: List[Dict[str, Any]]) -> Dict[str, float]:
+def ensemble(scores_list: List[Dict[str, Any]]) -> Dict[str, Any]:
     agg = {k: 0.0 for k in DIMENSIONS}
+    feedback_list = []
+    missing_reqs = set()
     n = max(1, len(scores_list))
+    
     for d in scores_list:
         for k in DIMENSIONS:
             agg[k] += float(d["scores"].get(k, 0.0))
+        
+        # Collect feedback
+        if "feedback" in d:
+            feedback_list.append(d["feedback"])
+        
+        # Collect missing requirements
+        if "missing_requirements" in d and d["missing_requirements"]:
+            missing_reqs.update(d["missing_requirements"])
+    
     for k in agg:
         agg[k] /= n
-    return agg
+    
+    # Combine feedback from all models
+    combined_feedback = {"strengths": [], "improvements": []}
+    for fb in feedback_list:
+        if isinstance(fb, dict):
+            if "strengths" in fb and fb["strengths"]:
+                combined_feedback["strengths"].append(fb["strengths"])
+            if "improvements" in fb and fb["improvements"]:
+                combined_feedback["improvements"].append(fb["improvements"])
+    
+    return {
+        "scores": agg, 
+        "feedback": combined_feedback,
+        "missing_requirements": list(missing_reqs)
+    }
 
 def weighted_total(scores: Dict[str, float]) -> float:
+    """Calculate weighted total for a section using current dimension weights."""
     return sum(scores[k] * DIMENSIONS[k] for k in DIMENSIONS)
+
+def calculate_overall_score(section_scores: Dict[str, float]) -> float:
+    """Calculate overall score using section weights."""
+    total = 0.0
+    for section in TARGET_SECTIONS:
+        section_key = f"{section}_total"
+        if section_key in section_scores:
+            total += section_scores[section_key] * SECTION_WEIGHTS[section]
+    return total
 
 # =========================
 # Main
@@ -247,6 +588,43 @@ def weighted_total(scores: Dict[str, float]) -> float:
 def process_file(path: str, client: APIClient, text_models: Dict[str, ModelInference], vision_models: Dict[str, ModelInference]) -> Dict[str, Any]:
     df = load_table(path)
     sec_vals = {sec: "" for sec in TARGET_SECTIONS}
+
+    # Check file size for scoring optimization
+    file_size_mb = 0.0
+    original_file_path = None
+    try:
+        # Try to find the original PPT file
+        submission_name = pathlib.Path(path).stem
+        possible_extensions = ['.pptx', '.ppt']
+        for ext in possible_extensions:
+            for search_path in ['.', '../input_submissions', 'input_submissions']:
+                potential_path = os.path.join(search_path, f"{submission_name}{ext}")
+                if os.path.exists(potential_path):
+                    original_file_path = potential_path
+                    file_size_mb = os.path.getsize(potential_path) / (1024 * 1024)
+                    break
+            if original_file_path:
+                break
+    except Exception as e:
+        print(f"Could not determine file size for {path}: {e}")
+    
+    # File size scoring factor (optimal size ≤ 5MB gets bonus, larger files get penalty)
+    file_size_factor = 1.0
+    file_size_feedback = ""
+    
+    if file_size_mb > 0:
+        if file_size_mb <= 5.0:
+            file_size_factor = 1.05  # 5% bonus for optimal size
+            file_size_feedback = f"Optimal file size ({file_size_mb:.1f}MB) - processing efficiency bonus applied"
+        elif file_size_mb <= 10.0:
+            file_size_factor = 1.0  # No penalty for reasonable size
+            file_size_feedback = f"Good file size ({file_size_mb:.1f}MB) - no processing impact"
+        elif file_size_mb <= 20.0:
+            file_size_factor = 0.98  # 2% penalty for large files
+            file_size_feedback = f"Large file size ({file_size_mb:.1f}MB) - minor processing efficiency impact"
+        else:
+            file_size_factor = 0.95  # 5% penalty for very large files
+            file_size_feedback = f"Very large file size ({file_size_mb:.1f}MB) - processing efficiency penalty applied"
 
     # Try direct section columns
     for sec in TARGET_SECTIONS:
@@ -282,13 +660,14 @@ def process_file(path: str, client: APIClient, text_models: Dict[str, ModelInfer
     result_row: Dict[str, Any] = {"submission_id": pathlib.Path(path).stem}
 
     # ---------- Text sections ----------
+    section_feedback = {}
     for sec in ["problem_statement", "proposed_solution"]:
         per_model = []
         for mid, mi in text_models.items():
             try:
                 data = score_text(mi, sec, sec_vals.get(sec, ""))
             except Exception:
-                data = {"scores": {k: 0.0 for k in DIMENSIONS}}
+                data = {"scores": {k: 0.0 for k in DIMENSIONS}, "feedback": {"strengths": "", "improvements": ""}}
             per_model.append(data)
 
             # per-model log
@@ -302,7 +681,10 @@ def process_file(path: str, client: APIClient, text_models: Dict[str, ModelInfer
             row_log["section_total"] = weighted_total({k: row_log[k] for k in DIMENSIONS})
             MODEL_SCORE_ROWS.append(row_log)
 
-        avg = ensemble(per_model)
+        result = ensemble(per_model)
+        avg = result["scores"]
+        section_feedback[sec] = result["feedback"]
+        
         for k in DIMENSIONS:
             result_row[f"{sec}_{k}"] = avg[k]
         result_row[f"{sec}_total"] = weighted_total(avg)
@@ -314,7 +696,7 @@ def process_file(path: str, client: APIClient, text_models: Dict[str, ModelInfer
             try:
                 data = score_vision(mi, img_b64)
             except Exception:
-                data = {"scores": {k: 0.0 for k in DIMENSIONS}}
+                data = {"scores": {k: 0.0 for k in DIMENSIONS}, "feedback": {"strengths": "", "improvements": ""}}
             per_model.append(data)
 
             row_log = {
@@ -337,7 +719,7 @@ def process_file(path: str, client: APIClient, text_models: Dict[str, ModelInfer
                     tech_arch_text = f"{tech_arch_text}\n\nExtracted text from architecture diagrams:\n{extracted_text}"
                 data = score_text(mi, "technical_architecture", tech_arch_text)
             except Exception:
-                data = {"scores": {k: 0.0 for k in DIMENSIONS}}
+                data = {"scores": {k: 0.0 for k in DIMENSIONS}, "feedback": {"strengths": "", "improvements": ""}}
             per_model.append(data)
 
             row_log = {
@@ -353,7 +735,10 @@ def process_file(path: str, client: APIClient, text_models: Dict[str, ModelInfer
             row_log["section_total"] = weighted_total({k: row_log[k] for k in DIMENSIONS})
             MODEL_SCORE_ROWS.append(row_log)
 
-    avg = ensemble(per_model)
+    result = ensemble(per_model)
+    avg = result["scores"]
+    section_feedback["technical_architecture"] = result["feedback"]
+    
     for k in DIMENSIONS:
         result_row[f"technical_architecture_{k}"] = avg[k]
     result_row["technical_architecture_total"] = weighted_total(avg)
@@ -361,8 +746,68 @@ def process_file(path: str, client: APIClient, text_models: Dict[str, ModelInfer
     # ---------- Overall ----------
     for sec in TARGET_SECTIONS:
         result_row.setdefault(f"{sec}_total", 0.0)
-    totals = [result_row[f"{s}_total"] for s in TARGET_SECTIONS]
-    result_row["overall_score"] = sum(totals) / max(1, len(totals))
+    
+    # Calculate base overall score using section weights
+    base_overall_score = calculate_overall_score(result_row)
+    
+    # Apply file size optimization factor
+    result_row["overall_score"] = base_overall_score * file_size_factor
+    result_row["file_size_mb"] = file_size_mb
+    result_row["file_size_factor"] = file_size_factor
+    
+    # ---------- Compile Feedback ----------
+    overall_feedback = {"strengths": [], "improvements": []}
+    all_missing_requirements = set()
+    
+    for sec in TARGET_SECTIONS:
+        if sec in section_feedback:
+            sec_fb = section_feedback[sec]
+            if isinstance(sec_fb, dict):
+                # Add section-specific feedback
+                if sec_fb.get("strengths"):
+                    for strength in sec_fb["strengths"]:
+                        if strength.strip():
+                            overall_feedback["strengths"].append(f"{sec.replace('_', ' ').title()}: {strength}")
+                
+                if sec_fb.get("improvements"):
+                    for improvement in sec_fb["improvements"]:
+                        if improvement.strip():
+                            overall_feedback["improvements"].append(f"{sec.replace('_', ' ').title()}: {improvement}")
+                
+                # Collect missing requirements
+                if sec_fb.get("missing_requirements"):
+                    all_missing_requirements.update(sec_fb["missing_requirements"])
+    
+    # Check for missing diagrams/images and add to improvements
+    if not has_image and not extracted_text:
+        overall_feedback["improvements"].append("Technical Architecture: Consider adding visual diagrams or architectural drawings to better illustrate the system design")
+    
+    # Add missing requirements to improvements
+    if all_missing_requirements:
+        overall_feedback["improvements"].append("Missing Requirements: " + ", ".join(all_missing_requirements))
+    
+    # Compile final feedback text
+    feedback_text = ""
+    if overall_feedback["strengths"]:
+        feedback_text += "STRENGTHS:\n" + "\n".join(f"• {s}" for s in overall_feedback["strengths"][:3])  # Limit to top 3
+    
+    if overall_feedback["improvements"]:
+        if feedback_text:
+            feedback_text += "\n\n"
+        feedback_text += "AREAS FOR IMPROVEMENT:\n" + "\n".join(f"• {i}" for i in overall_feedback["improvements"][:5])  # Increased to 5 for missing reqs
+    
+    # Add file size feedback
+    if file_size_feedback:
+        if feedback_text:
+            feedback_text += "\n\n"
+        feedback_text += f"FILE SIZE OPTIMIZATION:\n• {file_size_feedback}"
+    
+    if not feedback_text:
+        feedback_text = "No specific feedback available. Please ensure all sections contain sufficient content for evaluation."
+    
+    result_row["feedback"] = feedback_text
+    result_row["missing_requirements"] = list(all_missing_requirements)
+    result_row["track"] = CURRENT_THEME
 
     return result_row
 
@@ -370,7 +815,102 @@ def main():
     ap = argparse.ArgumentParser(description="Evaluate PPTs (3 sections) with watsonx.ai, supporting images for architecture.")
     ap.add_argument("--input_dir", required=True, help="Directory with .parquet or .csv files (one submission per file).")
     ap.add_argument("--out_prefix", default="tri_scores", help="Output file prefix.")
+    ap.add_argument("--theme", choices=get_available_themes(), default="default", 
+                    help=f"Theme configuration to use. Available: {', '.join(get_available_themes())}")
+    ap.add_argument("--config_file", help="Path to custom JSON configuration file")
+    ap.add_argument("--list_themes", action="store_true", help="List available themes and exit")
+    
+    # Custom dimension weights
+    ap.add_argument("--uniqueness_weight", type=float, help="Weight for uniqueness dimension")
+    ap.add_argument("--completeness_weight", type=float, help="Weight for completeness dimension")
+    ap.add_argument("--impact_weight", type=float, help="Weight for impact on theme dimension")
+    ap.add_argument("--ethics_weight", type=float, help="Weight for ethical consideration dimension")
+    
+    # Custom section weights
+    ap.add_argument("--problem_weight", type=float, help="Weight for problem statement section")
+    ap.add_argument("--solution_weight", type=float, help="Weight for proposed solution section")
+    ap.add_argument("--architecture_weight", type=float, help="Weight for technical architecture section")
+    
     args = ap.parse_args()
+    
+    # List themes and exit if requested
+    if args.list_themes:
+        print("Available theme configurations:")
+        print("=" * 60)
+        for theme_name, config in THEME_CONFIGS.items():
+            print(f"\n🏆 {config['name'].upper()} ({theme_name})")
+            print(f"   Dimension Weights: {config['dimensions']}")
+            print(f"   Section Weights: {config['section_weights']}")
+            
+            if 'detailed_criteria' in config:
+                print(f"   Special Focus Areas:")
+                for criteria_type, criteria_list in config['detailed_criteria'].items():
+                    if criteria_type not in ['completeness', 'impact', 'uniqueness', 'ethics', 'presentation']:
+                        print(f"   - {criteria_type.replace('_', ' ').title()}")
+                        for criterion in criteria_list[:3]:  # Show first 3
+                            print(f"     • {criterion}")
+        
+        print("\n" + "=" * 60)
+        print("📋 MANDATORY REQUIREMENTS FOR ALL TRACKS:")
+        print("• YouTube video (Private with 'anybody with the link' access)")
+        print("• Must mention IBM or AWS or both")
+        print("• Working prototype demonstration")
+        print("• DPK/IBM Granite usage (RAG/Agentic)")
+        print("• Bias testing documentation")
+        print("• Must-have technologies clearly identified")
+        print("\nFor detailed criteria, see EVALUATION_CRITERIA.md")
+        return
+    
+    # Load configuration
+    custom_config = None
+    
+    # Check for custom configuration file
+    if args.config_file:
+        try:
+            import json
+            with open(args.config_file, 'r') as f:
+                custom_config = json.load(f)
+            print(f"Loaded custom configuration from {args.config_file}")
+        except Exception as e:
+            print(f"Error loading config file: {e}")
+            return
+    
+    # Check for command line weight overrides
+    elif any([args.uniqueness_weight, args.completeness_weight, args.impact_weight, args.ethics_weight,
+              args.problem_weight, args.solution_weight, args.architecture_weight]):
+        
+        # Create custom config from command line arguments
+        base_config = THEME_CONFIGS[args.theme]
+        
+        dimensions = base_config["dimensions"].copy()
+        section_weights = base_config["section_weights"].copy()
+        
+        # Update dimension weights if provided
+        if args.uniqueness_weight is not None:
+            dimensions["uniqueness"] = args.uniqueness_weight
+        if args.completeness_weight is not None:
+            dimensions["Completeness of the solution"] = args.completeness_weight
+        if args.impact_weight is not None:
+            dimensions["impact on the theme chosen"] = args.impact_weight
+        if args.ethics_weight is not None:
+            dimensions["ethical consideration"] = args.ethics_weight
+        
+        # Update section weights if provided
+        if args.problem_weight is not None:
+            section_weights["problem_statement"] = args.problem_weight
+        if args.solution_weight is not None:
+            section_weights["proposed_solution"] = args.solution_weight
+        if args.architecture_weight is not None:
+            section_weights["technical_architecture"] = args.architecture_weight
+        
+        custom_config = create_custom_config(dimensions, section_weights)
+        print("Using command line weight overrides")
+    
+    # Load the configuration
+    if custom_config:
+        load_theme_config(custom_config=custom_config)
+    else:
+        load_theme_config(args.theme)
 
     files = sorted(glob.glob(os.path.join(args.input_dir, "*.parquet")) + glob.glob(os.path.join(args.input_dir, "*.csv")))
     if not files:
@@ -396,6 +936,20 @@ def main():
         raise RuntimeError("overall_score missing; ensure process_file computes totals and returns the row.")
 
     out.sort_values("overall_score", ascending=False, inplace=True)
+    
+    # Add configuration info to the output
+    config_info = {
+        "theme": CURRENT_THEME,
+        "dimensions": DIMENSIONS,
+        "section_weights": SECTION_WEIGHTS
+    }
+    
+    # Save configuration alongside results
+    config_filename = f"{args.out_prefix}_config.json"
+    with open(config_filename, 'w') as f:
+        json.dump(config_info, f, indent=2)
+    
+    # Save all final tables as CSV files (primary format)
     out.to_csv(f"{args.out_prefix}.csv", index=False)
     out.to_parquet(f"{args.out_prefix}.parquet", index=False)
 
@@ -403,10 +957,29 @@ def main():
     model_prefix = f"{args.out_prefix}_per_model"
     model_df.to_csv(f"{model_prefix}.csv", index=False)
     model_df.to_parquet(f"{model_prefix}.parquet", index=False)
+    
+    # Save top results as separate CSV files
+    top_15_20 = out.head(20)
+    top_15_20.to_csv(f"{args.out_prefix}_top20.csv", index=False)
+    
+    # Save top 15 results
+    top_15 = out.head(15)
+    top_15.to_csv(f"{args.out_prefix}_top15.csv", index=False)
 
     print(out.head(10))
-    print(f"Saved: {args.out_prefix}.csv, {args.out_prefix}.parquet")
-    print(f"Saved per-model: {model_prefix}.csv, {model_prefix}.parquet")
+    print(f"Saved main results: {args.out_prefix}.csv, {args.out_prefix}.parquet")
+    print(f"Saved per-model results: {model_prefix}.csv, {model_prefix}.parquet")
+    print(f"Saved top 20 results: {args.out_prefix}_top20.csv")
+    print(f"Saved top 15 results: {args.out_prefix}_top15.csv")
+    print(f"Saved configuration: {config_filename}")
+    print(f"\nResults Summary:")
+    print(f"  Total submissions: {len(out)}")
+    print(f"  Top 20 saved for detailed review")
+    print(f"  Top 15 saved for final selection")
+    print(f"\nUsed configuration:")
+    print(f"  Theme: {CURRENT_THEME}")
+    print(f"  Dimensions: {DIMENSIONS}")
+    print(f"  Section weights: {SECTION_WEIGHTS}")
 
 if __name__ == "__main__":
     main()
