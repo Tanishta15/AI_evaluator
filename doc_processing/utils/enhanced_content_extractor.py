@@ -486,11 +486,11 @@ class EnhancedContentExtractor:
                     'total_elements': len(texts) + images + tables
                 })
             
-            self.logger.info(f"📊 Analyzed PPT structure: {len(slide_structure)} slides")
+            self.logger.info(f"Analyzed PPT structure: {len(slide_structure)} slides")
             return slide_structure
             
         except Exception as e:
-            self.logger.warning(f"⚠️ Could not analyze PPT structure dynamically: {e}")
+            self.logger.warning(f"Could not analyze PPT structure dynamically: {e}")
             return self._create_fallback_structure()
     
     def _determine_slide_title(self, texts: List[str], slide_num: int, total_slides: int) -> str:
@@ -900,7 +900,7 @@ class EnhancedContentExtractor:
             # Extract tables using Docling's table detection
             if hasattr(docling_document, 'tables'):
                 tables = getattr(docling_document, 'tables', [])
-                self.logger.info(f"📊 Found {len(tables)} tables in document")
+                self.logger.info(f"Found {len(tables)} tables in document")
                 
                 for i, table in enumerate(tables):
                     try:

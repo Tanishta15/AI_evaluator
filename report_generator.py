@@ -230,7 +230,7 @@ GEN_PARAMS = {
     GenParams.REPETITION_PENALTY: 1.1,
 }
 
-def get_detailed_prompt(section_name: str, theme: str = "default") -> str:
+def get_detailed_prompt(section_name: str, section_text: str, theme: str = "default") -> str:
     """Generate detailed evaluation prompt based on theme and section."""
     theme_config = THEME_CONFIGS.get(theme, THEME_CONFIGS["default"])
     base_criteria = theme_config.get("detailed_criteria", {})
@@ -326,8 +326,6 @@ Rules:
 
 SECTION_CONTENT:
 \"\"\"{section_text}\"\"\""""
-
-TEXT_PROMPT = get_detailed_prompt("{section_name}", CURRENT_THEME)
 
 VISION_USER_QUERY = (
     "Evaluate this technical architecture image for a hackathon PPT. "
@@ -502,7 +500,7 @@ def normalize_scores(raw: Dict[str, Any]) -> Dict[str, float]:
 @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=8),
        retry=retry_if_exception_type((LLMReplyError, TimeoutError)))
 def score_text(mi: ModelInference, section_name: str, section_text: str) -> Dict[str, Any]:
-    prompt = get_detailed_prompt(section_name, CURRENT_THEME).format(section_name=section_name, section_text=section_text)
+    prompt = get_detailed_prompt(section_name, section_text, CURRENT_THEME)
     resp = mi.generate_text(prompt=prompt, params=GEN_PARAMS, raw_response=True)
     text = resp["results"][0]["generated_text"] if isinstance(resp, dict) else str(resp)
     s, e = text.find("{"), text.rfind("}")
@@ -867,7 +865,6 @@ def main():
     # Check for custom configuration file
     if args.config_file:
         try:
-            import json
             with open(args.config_file, 'r') as f:
                 custom_config = json.load(f)
             print(f"Loaded custom configuration from {args.config_file}")

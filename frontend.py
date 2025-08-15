@@ -197,11 +197,15 @@ class ContentEvaluatorPipeline:
             
             original_cwd = os.getcwd()
             
+            # Create permanent results directory
+            results_dir = Path("./results")
+            results_dir.mkdir(exist_ok=True)
+            
             cmd = [
                 sys.executable,
                 "report_generator.py", 
                 "--input_dir", str(evaluation_results),
-                "--out_prefix", str(Path(self.temp_dir) / "scores" / "evaluation"),
+                "--out_prefix", str(results_dir / "evaluation"),
                 "--theme", theme
             ]
             
@@ -214,13 +218,17 @@ class ContentEvaluatorPipeline:
             )
             
             if result.returncode == 0:
-                # Check if evaluation results were created
-                scores_dir = Path(self.temp_dir) / "scores"
-                evaluation_csv = scores_dir / "evaluation.csv"
+                # Check if evaluation results were created in the permanent results directory
+                results_dir = Path("./results")
+                evaluation_csv = results_dir / "evaluation.csv"
                 if evaluation_csv.exists():
+                    # Limit results to top 20 only
+                    self.limit_results_to_top20()
                     return True, f"Evaluation completed with {theme} theme! Processed {len(copied_files)} parquet files and generated results."
                 else:
-                    return False, f"Evaluation completed but no CSV results generated."
+                    # List what files were actually created for debugging
+                    existing_files = list(results_dir.glob("*")) if results_dir.exists() else []
+                    return False, f"Evaluation completed but no CSV results generated in {results_dir}. Found files: {[f.name for f in existing_files]}"
             else:
                 return False, f"Evaluation failed: {result.stderr}"
                 
@@ -232,12 +240,13 @@ class ContentEvaluatorPipeline:
     def load_results(self) -> Dict[str, Any]:
         """Load and return all results, prioritizing top results CSV files."""
         results = {}
-        scores_dir = Path(self.temp_dir) / "scores"
+        # Load results from permanent directory since report_generator.py saves directly there
+        results_dir = Path("./results")
         
         # First try to load top 20/15 results if available
-        top20_csv = scores_dir / "evaluation_top20.csv"
-        top15_csv = scores_dir / "evaluation_top15.csv"
-        main_csv = scores_dir / "evaluation.csv"
+        top20_csv = results_dir / "evaluation_top20.csv"
+        top15_csv = results_dir / "evaluation_top15.csv"
+        main_csv = results_dir / "evaluation.csv"
         
         # Load main evaluation results (prefer top20, fallback to main)
         if top20_csv.exists():
@@ -249,7 +258,7 @@ class ContentEvaluatorPipeline:
             results['main_scores'] = full_df.head(20) if len(full_df) > 20 else full_df
             print(f"Loaded and limited main results to top 20 from {main_csv}")
         else:
-            print("No main results CSV found")
+            print("No main results CSV found in results directory")
         
         # Load top 15 if available for comparison
         if top15_csv.exists():
@@ -257,12 +266,83 @@ class ContentEvaluatorPipeline:
             print(f"Loaded top 15 results from {top15_csv}")
         
         # Load per-model results
-        per_model_csv = scores_dir / "evaluation_per_model.csv"
+        per_model_csv = results_dir / "evaluation_per_model.csv"
         if per_model_csv.exists():
             results['per_model_scores'] = pd.read_csv(per_model_csv)
 
         self.results = results
+        
         return results
+    
+    def limit_results_to_top20(self):
+        """Post-process results to limit main CSV files to top 20 entries only."""
+        results_dir = Path("./results")
+        
+        if not results_dir.exists():
+            return
+            
+        # Process main evaluation CSV to limit to top 20
+        main_csv = results_dir / "evaluation.csv"
+        if main_csv.exists():
+            try:
+                df = pd.read_csv(main_csv)
+                
+                if 'overall_score' in df.columns and len(df) > 20:
+                    # Sort by overall_score descending and take top 20
+                    df_sorted = df.sort_values('overall_score', ascending=False)
+                    df_top20 = df_sorted.head(20)
+                    
+                    # Save the limited results back to the same file
+                    df_top20.to_csv(main_csv, index=False)
+                    print(f"Limited main results to top 20 ({len(df)} → {len(df_top20)} rows)")
+                    
+            except Exception as e:
+                print(f"Error limiting results to top 20: {e}")
+    
+    def copy_results_to_permanent_location(self):
+        """Copy evaluation results to a permanent 'results' directory, limiting to top 20."""
+        if not self.temp_dir:
+            return
+            
+        # Create permanent results directory
+        permanent_results_dir = Path("./results")
+        permanent_results_dir.mkdir(exist_ok=True)
+        
+        # Process and save only top 20 results from CSV files
+        scores_dir = Path(self.temp_dir) / "scores"
+        if scores_dir.exists():
+            for csv_file in scores_dir.glob("*.csv"):
+                try:
+                    # Read the CSV file
+                    df = pd.read_csv(csv_file)
+                    
+                    # If this is the main evaluation file, limit to top 20
+                    if 'overall_score' in df.columns and len(df) > 20:
+                        # Sort by overall_score descending and take top 20
+                        df_sorted = df.sort_values('overall_score', ascending=False)
+                        df_top20 = df_sorted.head(20)
+                        
+                        # Save the limited results
+                        dest_file = permanent_results_dir / csv_file.name
+                        df_top20.to_csv(dest_file, index=False)
+                        print(f"Saved top 20 results to {dest_file} ({len(df)} → {len(df_top20)} rows)")
+                    else:
+                        # For other CSV files (per-model, etc.), copy as is
+                        dest_file = permanent_results_dir / csv_file.name
+                        shutil.copy2(csv_file, dest_file)
+                        print(f"Copied {csv_file.name} to {dest_file}")
+                        
+                except Exception as e:
+                    # Fallback to copying if there's an error reading the CSV
+                    dest_file = permanent_results_dir / csv_file.name
+                    shutil.copy2(csv_file, dest_file)
+                    print(f"Copied {csv_file.name} to {dest_file} (fallback due to: {e})")
+            
+            # Also copy config file
+            for json_file in scores_dir.glob("*.json"):
+                dest_file = permanent_results_dir / json_file.name
+                shutil.copy2(json_file, dest_file)
+                print(f"Copied {json_file.name} to {dest_file}")
     
     def cleanup(self):
         """Cleanup temporary files."""
@@ -329,7 +409,13 @@ def process_uploads(files, theme="default") -> str:
         results = pipeline.load_results()
         
         if 'main_scores' in results:
-            status_msg += f"Pipeline completed successfully! Generated results for {len(results['main_scores'])} submissions using {theme} theme configuration."
+            status_msg += f"Pipeline completed successfully! Generated results for {len(results['main_scores'])} submissions using {theme} theme configuration.\n\n"
+            status_msg += "Results saved to ./results/ directory (TOP 20 ONLY):\n"
+            status_msg += "   - evaluation.csv (top 20 main results)\n"
+            status_msg += "   - evaluation_top20.csv (top 20 rankings)\n"
+            status_msg += "   - evaluation_top15.csv (top 15 rankings)\n"
+            status_msg += "   - evaluation_per_model.csv (per-model scores)\n"
+            status_msg += "   - evaluation_config.json (configuration used)"
             return status_msg
         else:
             status_msg += "No evaluation results found in CSV files"
@@ -382,7 +468,7 @@ def get_submissions_table():
         margin-bottom: 20px;
         text-align: center;
     ">
-        <h2 style="margin: 0 0 10px 0;">🏆 Final Rankings - Top {showing_count} Presentations</h2>
+        <h2 style="margin: 0 0 10px 0;">Final Rankings - Top {showing_count} Presentations</h2>
         <p style="margin: 0; opacity: 0.9;">
             Showing top {showing_count} out of {total_submissions} total submissions
         </p>
@@ -393,7 +479,7 @@ def get_submissions_table():
             margin-top: 15px;
             display: inline-block;
         ">
-            <strong>📊 Results saved to CSV files for final review</strong>
+            <strong>Results saved to CSV files for final review</strong>
         </div>
     </div>
     """
@@ -1453,7 +1539,7 @@ def create_interface():
             <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 8px; margin: 5px 0;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <strong>🚀 Starting Evaluation</strong><br>
+                        <strong>Starting Evaluation</strong><br>
                         <small>Track: {theme} | Files: {len(files)}</small>
                     </div>
                     <div style="width: 20px; height: 20px; border: 2px solid #fff; border-top: 2px solid transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
@@ -1470,7 +1556,7 @@ def create_interface():
                 
                 file_process_html = setup_html + f"""
                 <div style="background: #d1ecf1; color: #0c5460; padding: 12px; border-radius: 8px; margin: 5px 0;">
-                    <strong>📁 Files Processed</strong><br>
+                    <strong>Files Processed</strong><br>
                     <small>Saved {len(saved_files)} files to processing directory</small>
                 </div>
                 """
@@ -1481,7 +1567,7 @@ def create_interface():
                 <div style="background: #fff3cd; color: #856404; padding: 12px; border-radius: 8px; margin: 5px 0;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div>
-                            <strong>📄 Document Processing</strong><br>
+                            <strong>Document Processing</strong><br>
                             <small>Extracting text and images...</small>
                         </div>
                         <div style="width: 16px; height: 16px; border: 2px solid #856404; border-top: 2px solid transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
@@ -1494,7 +1580,7 @@ def create_interface():
                 if not success:
                     error_html = doc_process_html + f"""
                     <div style="background: #f8d7da; color: #721c24; padding: 12px; border-radius: 8px; margin: 5px 0;">
-                        <strong>❌ Document Processing Failed</strong><br>
+                        <strong>Document Processing Failed</strong><br>
                         <small>{msg}</small>
                     </div>
                     """
@@ -1538,7 +1624,7 @@ def create_interface():
                 <div style="background: #cce5ff; color: #004085; padding: 12px; border-radius: 8px; margin: 5px 0;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div>
-                            <strong>📊 Loading Results</strong><br>
+                            <strong>Loading Results</strong><br>
                             <small>Preparing final rankings...</small>
                         </div>
                         <div style="width: 16px; height: 16px; border: 2px solid #004085; border-top: 2px solid transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
@@ -1554,7 +1640,7 @@ def create_interface():
                     # Final success with results refresh
                     success_html = f"""
                     <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 20px; border-radius: 12px; text-align: center;">
-                        <h3>🎉 Evaluation Complete!</h3>
+                        <h3>Evaluation Complete!</h3>
                         <p><strong>Track:</strong> {theme} | <strong>Submissions:</strong> {len(results['main_scores'])}</p>
                         <p>Results loaded successfully. Check the Submissions tab for rankings!</p>
                     </div>
@@ -1579,7 +1665,7 @@ def create_interface():
                 else:
                     error_html = results_load_html + f"""
                     <div style="background: #f8d7da; color: #721c24; padding: 12px; border-radius: 8px; margin: 5px 0;">
-                        <strong>❌ No Results Found</strong><br>
+                        <strong>No Results Found</strong><br>
                         <small>Evaluation completed but no results were generated</small>
                     </div>
                     """
@@ -1588,7 +1674,7 @@ def create_interface():
             except Exception as e:
                 error_html = f"""
                 <div style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white; padding: 20px; border-radius: 12px;">
-                    <h3>❌ Processing Failed</h3>
+                    <h3>Processing Failed</h3>
                     <p><strong>Error:</strong> {str(e)}</p>
                     <small>Please try again or check the file formats</small>
                 </div>

@@ -140,12 +140,12 @@ class AIEvaluatorPipeline:
                 if embeddings_result and embeddings_result.get('success'):
                     self.stats['total_embeddings'] += embeddings_result.get('embeddings_count', 0)
                 
-                self.logger.info(f"✅ Successfully processed: {file_path.name}")
-                self.logger.info(f"   📄 Slides: {result.get('total_slides', 0)}")
-                self.logger.info(f"   ⏱️  Time: {processing_time:.2f}s")
+                self.logger.info(f"Successfully processed: {file_path.name}")
+                self.logger.info(f"Slides: {result.get('total_slides', 0)}")
+                self.logger.info(f"Time: {processing_time:.2f}s")
                 
                 if embeddings_result and embeddings_result.get('success'):
-                    self.logger.info(f"   🧠 Embeddings: {embeddings_result.get('embeddings_count', 0)}")
+                    self.logger.info(f"Embeddings: {embeddings_result.get('embeddings_count', 0)}")
             else:
                 self.stats['failed_files'] += 1
                 error_msg = result.get('error', 'Unknown error')
@@ -154,7 +154,7 @@ class AIEvaluatorPipeline:
                     'error': error_msg,
                     'timestamp': datetime.now().isoformat()
                 })
-                self.logger.error(f"❌ Failed to process: {file_path.name} - {error_msg}")
+                self.logger.error(f"Failed to process: {file_path.name} - {error_msg}")
             
             return result
             
@@ -166,7 +166,7 @@ class AIEvaluatorPipeline:
                 'error': error_msg,
                 'timestamp': datetime.now().isoformat()
             })
-            self.logger.error(f"❌ Exception processing {file_path.name}: {error_msg}")
+            self.logger.error(f"Exception processing {file_path.name}: {error_msg}")
             return {
                 'success': False,
                 'error': error_msg,
@@ -177,10 +177,10 @@ class AIEvaluatorPipeline:
         """Process a batch of documents."""
         results = []
         
-        self.logger.info(f"🚀 Starting batch processing of {len(file_paths)} files")
+        self.logger.info(f"Starting batch processing of {len(file_paths)} files")
         
         for i, file_path in enumerate(file_paths, 1):
-            self.logger.info(f"📊 Progress: {i}/{len(file_paths)} ({i/len(file_paths)*100:.1f}%)")
+            self.logger.info(f"Progress: {i}/{len(file_paths)} ({i/len(file_paths)*100:.1f}%)")
             
             result = self.process_single_document(file_path)
             results.append(result)
@@ -240,7 +240,7 @@ class AIEvaluatorPipeline:
             # Discover input files
             input_files = self.discover_input_files()
             if not input_files:
-                self.logger.warning("⚠️ No input files found")
+                self.logger.warning("No input files found")
                 return {'success': False, 'error': 'No input files found'}
             
             self.stats['total_files'] = len(input_files)
@@ -252,15 +252,15 @@ class AIEvaluatorPipeline:
             self.stats['end_time'] = datetime.now()
             
             # Log final statistics only (no report saving)
-            self.logger.info("🚀 PIPELINE COMPLETED")
+            self.logger.info("PIPELINE COMPLETED")
             self.logger.info("=" * 60)
-            self.logger.info(f"📊 Processed: {self.stats['successful_files']}/{self.stats['total_files']} files")
-            self.logger.info(f"📄 Total slides: {self.stats['total_slides']}")
-            self.logger.info(f"🧠 Total embeddings: {self.stats['total_embeddings']}")
-            self.logger.info(f"⏱️ Total time: {(self.stats['end_time'] - self.stats['start_time']).total_seconds():.2f}s")
+            self.logger.info(f"Processed: {self.stats['successful_files']}/{self.stats['total_files']} files")
+            self.logger.info(f"Total slides: {self.stats['total_slides']}")
+            self.logger.info(f"Total embeddings: {self.stats['total_embeddings']}")
+            self.logger.info(f"Total time: {(self.stats['end_time'] - self.stats['start_time']).total_seconds():.2f}s")
             
             if self.stats['failed_files'] > 0:
-                self.logger.warning(f"⚠️ {self.stats['failed_files']} files failed processing")
+                self.logger.warning(f"{self.stats['failed_files']} files failed processing")
             
             return {
                 'success': True,

@@ -1,0 +1,14 @@
+{
+  "theme": "healthcare",
+  "dimensions": {
+    "uniqueness": 0.25,
+    "Completeness of the solution": 0.3,
+    "impact on the theme chosen": 0.3,
+    "ethical consideration": 0.15
+  },
+  "section_weights": {
+    "problem_statement": 0.3,
+    "proposed_solution": 0.35,
+    "technical_architecture": 0.35
+  }
+}
