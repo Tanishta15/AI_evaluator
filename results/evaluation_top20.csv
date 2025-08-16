@@ -1,15 +1,15 @@
-submission_id,problem_statement_uniqueness,problem_statement_Completeness of the solution,problem_statement_impact on the theme chosen,problem_statement_ethical consideration,problem_statement_total,proposed_solution_uniqueness,proposed_solution_Completeness of the solution,proposed_solution_impact on the theme chosen,proposed_solution_ethical consideration,proposed_solution_total,technical_architecture_uniqueness,technical_architecture_Completeness of the solution,technical_architecture_impact on the theme chosen,technical_architecture_ethical consideration,technical_architecture_total,overall_score,file_size_mb,file_size_factor,feedback,missing_requirements,track
-MindEase,3.8,2.395,4.0675,4.215,3.521,2.375,1.5,2.75,2.875,2.3,0.95,0.625,0.9,0.55,0.7775,2.24009625,1.6065130233764648,1.05,"STRENGTHS:
-• Problem Statement: Clearly defines a problem related to digital well-being, introduces agentic AI for personalized recommendations, emphasizes ethical considerations through Granite's oversight.
-• Problem Statement: Clearly defines a unique, realistic problem, emphasizes user-centric approach, and integrates agentic AI for tailored recommendations.
-• Problem Statement: Clearly defines a relevant problem in healthcare and mentions the use of Agentic AI and ethical oversight.
+submission_id,problem_statement_uniqueness,problem_statement_Completeness of the solution,problem_statement_impact on the theme chosen,problem_statement_ethical consideration,problem_statement_total,proposed_solution_uniqueness,proposed_solution_Completeness of the solution,proposed_solution_impact on the theme chosen,proposed_solution_ethical consideration,proposed_solution_total,technical_architecture_uniqueness,technical_architecture_Completeness of the solution,technical_architecture_impact on the theme chosen,technical_architecture_ethical consideration,technical_architecture_total,overall_score,file_size_mb,file_size_factor,feedback,missing_requirements,track,certificates_ok,certificate_status
+MindEase IBM_HACKATHON,3.7875,2.395,4.0675,4.215,3.517875,1.5,1.0,1.75,2.0,1.5,0.0,0.0,0.0,0.0,0.0,1.659380625,1.7314844131469729,1.05,"STRENGTHS:
+• Problem Statement: Clearly defines a unique problem in digital wellness, emphasizes ethical considerations and use of agentic AI for personalized recommendations.
+• Problem Statement: Clearly defines a unique, realistic problem, utilizes agentic AI, and aligns with ethical guidelines set by IBM's Granite series.
+• Problem Statement: Identifies a critical problem in digital well-being and suggests the use of agentic AI and data preparation for personalized recommendations.
 
 AREAS FOR IMPROVEMENT:
-• Problem Statement: Specify how this solution addresses healthcare themes such as patient safety, medical data privacy, or clinical validation. Mention traditional AI implementation details and provide evidence of bias testing.
-• Problem Statement: Could benefit from explicit mention of IBM Watson Data Preparation Toolkit or AWS services used.
-• Problem Statement: Needs more specifics on the data preparation toolkit, how Agentic AI will be applied, and evidence of a working prototype or clear plan for its development. Missing required elements include a YouTube video link, explicit mention of IBM or AWS, and details on bias testing methodology.
-• Problem Statement: Needs more detail on how IBM/AWS will be used, prototype evidence, and bias testing methodology.
-• Proposed Solution: Missing required elements include a working prototype, YouTube video link, and explicit mention of IBM or AWS. Also, more technical details on how Agentic AI and Granite are utilized would strengthen the proposal.
+• Problem Statement: Lacks explicit mention of IBM or AWS, doesn't provide evidence of a working prototype, and doesn't detail how it differs from simple LLMs.
+• Problem Statement: Could benefit from explicit mention of IBM or AWS, providing a working prototype, and detailing bias testing methodology.
+• Problem Statement: Needs more specifics on the data preparation toolkit, how agentic AI will be applied, and evidence of a working prototype or clear plan for its development. Missing required elements include a YouTube video link, explicit mention of IBM or AWS, and details on bias testing methodology.
+• Problem Statement: Needs more detail on the working prototype, specific technologies used, and how it differs from existing solutions.
+• Proposed Solution: Missing required elements include a working prototype, clear identification of must-have technologies, and a YouTube video link. Additionally, more technical details on how Agentic AI and Granite models are utilized would strengthen the proposal.
 
 FILE SIZE OPTIMIZATION:
-• Optimal file size (1.6MB) - processing efficiency bonus applied",[],healthcare
+• Optimal file size (1.7MB) - processing efficiency bonus applied",[],healthcare,0,Certificate Invalid
