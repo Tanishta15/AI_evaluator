@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 submission_id,section,evaluator_model,evaluator_type,Problem Statement,Proposed Solution,Technical Architecture,Novelty  Uniqueness/creativity,presentaion,ethical consideration,completeness of design solution,implementing ibm dpk/rag/aws/watsonx/granite,uniqueness,Completeness of the solution,impact on the theme chosen,section_total,used_image,image_path,used_extracted_text
 Ascent,problem_statement,ibm/granite-3-2-8b-instruct,text,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.9,,,
 Ascent,problem_statement,ibm/granite-3-2b-instruct,text,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.9,,,
@@ -23,3 +24,18 @@ COSMIC_CODERS,technical_architecture,ibm/granite-3-2-8b-instruct,text,1.0,1.0,1.
 COSMIC_CODERS,technical_architecture,ibm/granite-3-2b-instruct,text,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.9,False,,False
 COSMIC_CODERS,technical_architecture,meta-llama/llama-3-3-70b-instruct,text,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.9,False,,False
 COSMIC_CODERS,technical_architecture,mistralai/mistral-large,text,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.9,False,,False
+=======
+submission_id,section,evaluator_model,evaluator_type,uniqueness,Completeness of the solution,impact on the theme chosen,ethical consideration,section_total,used_image,image_path,used_extracted_text
+MindEase IBM_HACKATHON,problem_statement,ibm/granite-3-2-8b-instruct,text,0.7,0.6,0.8,0.9,0.73,,,
+MindEase IBM_HACKATHON,problem_statement,ibm/granite-3-2b-instruct,text,0.95,0.98,0.97,0.96,0.9664999999999999,,,
+MindEase IBM_HACKATHON,problem_statement,meta-llama/llama-3-3-70b-instruct,text,6.0,4.0,8.0,7.0,6.15,,,
+MindEase IBM_HACKATHON,problem_statement,mistralai/mistral-large,text,7.5,4.0,6.5,8.0,6.225,,,
+MindEase IBM_HACKATHON,proposed_solution,ibm/granite-3-2-8b-instruct,text,0.0,0.0,0.0,0.0,0.0,,,
+MindEase IBM_HACKATHON,proposed_solution,ibm/granite-3-2b-instruct,text,0.0,0.0,0.0,0.0,0.0,,,
+MindEase IBM_HACKATHON,proposed_solution,meta-llama/llama-3-3-70b-instruct,text,6.0,4.0,7.0,8.0,6.0,,,
+MindEase IBM_HACKATHON,proposed_solution,mistralai/mistral-large,text,0.0,0.0,0.0,0.0,0.0,,,
+MindEase IBM_HACKATHON,technical_architecture,ibm/granite-3-2-8b-instruct,text,0.0,0.0,0.0,0.0,0.0,False,,False
+MindEase IBM_HACKATHON,technical_architecture,ibm/granite-3-2b-instruct,text,0.0,0.0,0.0,0.0,0.0,False,,False
+MindEase IBM_HACKATHON,technical_architecture,meta-llama/llama-3-3-70b-instruct,text,0.0,0.0,0.0,0.0,0.0,False,,False
+MindEase IBM_HACKATHON,technical_architecture,mistralai/mistral-large,text,0.0,0.0,0.0,0.0,0.0,False,,False
+>>>>>>> c8a25ef9c0f02973c07b6e3cad026750900c80b1
