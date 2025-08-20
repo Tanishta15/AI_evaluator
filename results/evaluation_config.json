@@ -1,10 +1,17 @@
 {
-  "theme": "healthcare",
+  "theme": "custom",
   "dimensions": {
+    "Problem Statement": 0.1,
+    "Proposed Solution": 0.15,
+    "Technical Architecture": 0.15,
+    "Novelty  Uniqueness/creativity": 0.15,
+    "presentaion": 0.1,
+    "ethical consideration": 0.15,
+    "completeness of design solution": 0.15,
+    "implementing ibm dpk/rag/aws/watsonx/granite": 0.1,
     "uniqueness": 0.25,
     "Completeness of the solution": 0.3,
-    "impact on the theme chosen": 0.3,
-    "ethical consideration": 0.15
+    "impact on the theme chosen": 0.3
   },
   "section_weights": {
     "problem_statement": 0.3,

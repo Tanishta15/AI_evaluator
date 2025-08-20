@@ -1,7 +1,7 @@
 {
-  "healthcare": {
-    "name": "Healthcare",
-    "description": "Healthcare",
+  "climate_change_analysis_and_mitigation": {
+    "name": "Climate Change Analysis and Mitigation",
+    "description": "Climate Change Analysis and Mitigation",
     "dimensions": {
       "uniqueness": 0.25,
       "Completeness of the solution": 0.3,

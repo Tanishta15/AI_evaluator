@@ -14,6 +14,15 @@ from pathlib import Path
 import time
 from typing import List, Tuple, Dict, Any
 import logging
+
+# Import certificate verification functionality
+try:
+    from certificate_verifier import verify_from_parquet
+    CERTIFICATE_VERIFICATION_AVAILABLE = True
+except ImportError:
+    CERTIFICATE_VERIFICATION_AVAILABLE = False
+    print("Warning: Certificate verification not available. Install pytesseract for full functionality.")
+import logging
  
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -27,9 +36,12 @@ class ContentEvaluatorPipeline:
         self.results = {}
         
     def setup_temp_environment(self) -> str:
-        """Setup temporary environment for processing."""
+        """Setup temporary environment for processing and clean old data."""
         if self.temp_dir:
             shutil.rmtree(self.temp_dir, ignore_errors=True)
+        
+        # Clean up old permanent data before starting new processing
+        self.cleanup_old_data()
         
         self.temp_dir = tempfile.mkdtemp(prefix="evaluator_")
         
@@ -40,6 +52,43 @@ class ContentEvaluatorPipeline:
         (Path(self.temp_dir) / "scores").mkdir(exist_ok=True)
         
         return self.temp_dir
+    
+    def cleanup_old_data(self):
+        """Remove old pipeline output, results, and input submissions before processing new data."""
+        print("🧹 Cleaning up old data before processing new uploads...")
+        
+        # Clean old pipeline output
+        pipeline_output = Path("./pipeline_output")
+        if pipeline_output.exists():
+            shutil.rmtree(pipeline_output, ignore_errors=True)
+            print(f"   Removed old pipeline_output directory")
+        pipeline_output.mkdir(exist_ok=True)
+        
+        # Clean old results
+        results_dir = Path("./results")
+        if results_dir.exists():
+            shutil.rmtree(results_dir, ignore_errors=True)
+            print(f"   Removed old results directory")
+        results_dir.mkdir(exist_ok=True)
+        
+        # Clean old input submissions (except the permanent ones if any)
+        input_submissions = Path("./input_submissions")
+        if input_submissions.exists():
+            # Remove any subdirectories that might contain old uploads
+            for item in input_submissions.iterdir():
+                if item.is_dir() and item.name.startswith("Theme"):
+                    shutil.rmtree(item, ignore_errors=True)
+                    print(f"   Removed old input directory: {item.name}")
+        
+        # Clear any temp pipeline outputs that might exist
+        for temp_dir in Path(".").glob("pipeline_output*"):
+            if temp_dir.is_dir() and temp_dir.name != "pipeline_output":
+                shutil.rmtree(temp_dir, ignore_errors=True)
+                print(f"   Removed temporary pipeline directory: {temp_dir.name}")
+        
+        # Reset results in memory
+        self.results = {}
+        print("✅ Old data cleanup completed")
     
     def save_uploaded_files(self, files: List) -> List[str]:
         """Save uploaded files to temp directory."""
@@ -67,11 +116,12 @@ class ContentEvaluatorPipeline:
         try:
             original_cwd = os.getcwd()
             
+            # Save directly to main pipeline_output directory (which was cleaned in setup)
             cmd = [
                 sys.executable, 
                 "ai_evaluator_pipeline.py",
                 "--input", str(Path(self.temp_dir) / "input_submissions"),
-                "--output", str(Path(self.temp_dir) / "pipeline_output"),
+                "--output", "./pipeline_output",  # Save directly to main directory
                 "--log-level", "INFO"
             ]
             
@@ -84,13 +134,13 @@ class ContentEvaluatorPipeline:
             )
             
             if result.returncode == 0:
-                # Check if output was actually created
-                output_dir = Path(self.temp_dir) / "pipeline_output"
+                # Check if output was actually created in main pipeline_output
+                output_dir = Path("./pipeline_output")
                 if output_dir.exists():
                     created_items = list(output_dir.iterdir())
                     if created_items:
                         # Run additional image processing if parquet files were created
-                        success_msg = f"Document processing completed! Created {len(created_items)} items."
+                        success_msg = f"Document processing completed! Created {len(created_items)} items in ./pipeline_output/"
                         
                         # Try to extract text from all images in the processed files
                         image_processing_msg = self.process_images_in_parquet_files()
@@ -113,7 +163,8 @@ class ContentEvaluatorPipeline:
     def process_images_in_parquet_files(self) -> str:
         """Process images in all parquet files using OCR text extraction."""
         try:
-            pipeline_output = Path(self.temp_dir) / "pipeline_output"
+            # Use main pipeline_output directory instead of temp
+            pipeline_output = Path("./pipeline_output")
             parquet_files = list(pipeline_output.rglob("*.parquet"))
             
             if not parquet_files:
@@ -162,11 +213,87 @@ class ContentEvaluatorPipeline:
         except Exception as e:
             return f"Image processing error: {str(e)}"
     
-    def run_evaluation(self, theme: str = "default") -> Tuple[bool, str]:
+    def run_certificate_verification(self) -> Tuple[bool, str]:
+        """Run certificate verification on all processed submissions."""
+        if not CERTIFICATE_VERIFICATION_AVAILABLE:
+            return False, "Certificate verification not available. Please install pytesseract."
+        
+        try:
+            # Check if data.csv exists for verification
+            data_csv_path = Path("./data.csv")
+            if not data_csv_path.exists():
+                return False, "data.csv not found. Certificate verification requires a participant database."
+            
+            # Find all parquet files from main pipeline output
+            pipeline_output = Path("./pipeline_output")
+            parquet_files = list(pipeline_output.rglob("*.parquet"))
+            
+            if not parquet_files:
+                return False, "No parquet files found for certificate verification."
+            
+            verification_results = []
+            successful_verifications = 0
+            
+            for parquet_file in parquet_files:
+                try:
+                    # Extract submission name from parquet file
+                    submission_name = parquet_file.stem
+                    
+                    # Run certificate verification
+                    result = verify_from_parquet(
+                        str(parquet_file),
+                        str(data_csv_path),
+                        base_dir=str(parquet_file.parent)
+                    )
+                    
+                    # Add submission info to result
+                    result['submission_name'] = submission_name
+                    verification_results.append(result)
+                    
+                    if result.get('ok', False):
+                        successful_verifications += 1
+                        
+                except Exception as e:
+                    # Add failed verification result
+                    verification_results.append({
+                        'submission_name': parquet_file.stem,
+                        'ok': False,
+                        'error': str(e),
+                        'similarity': 0.0
+                    })
+            
+            # Save verification results
+            verification_dir = Path(self.temp_dir) / "verification_results"
+            verification_dir.mkdir(exist_ok=True)
+            
+            # Convert results to DataFrame and save
+            if verification_results:
+                df_results = pd.DataFrame(verification_results)
+                verification_csv = verification_dir / "certificate_verification.csv"
+                df_results.to_csv(verification_csv, index=False)
+                
+                # Also save to permanent results directory
+                permanent_results_dir = Path("./results")
+                permanent_results_dir.mkdir(exist_ok=True)
+                permanent_csv = permanent_results_dir / "certificate_verification.csv"
+                df_results.to_csv(permanent_csv, index=False)
+            
+            total_files = len(parquet_files)
+            success_msg = f"Certificate verification completed! Verified {successful_verifications}/{total_files} submissions successfully."
+            
+            if successful_verifications > 0:
+                success_msg += f"\nResults saved to ./results/certificate_verification.csv"
+            
+            return True, success_msg
+            
+        except Exception as e:
+            return False, f"Certificate verification error: {str(e)}"
+    
+    def run_evaluation(self, theme="default") -> Tuple[bool, str]:
         """Run the evaluation pipeline (report_generator.py) with specified theme."""
         try:
-            # Check if there are processed files first
-            pipeline_output = Path(self.temp_dir) / "pipeline_output"
+            # Check if there are processed files first in main pipeline_output
+            pipeline_output = Path("./pipeline_output")
             if not pipeline_output.exists():
                 return False, "No pipeline_output directory found"
             
@@ -194,6 +321,7 @@ class ContentEvaluatorPipeline:
                 
                 shutil.copy2(parquet_file, dest_path)
                 copied_files.append(str(dest_path))
+                copied_files.append(str(dest_path))
             
             original_cwd = os.getcwd()
             
@@ -201,13 +329,52 @@ class ContentEvaluatorPipeline:
             results_dir = Path("./results")
             results_dir.mkdir(exist_ok=True)
             
-            cmd = [
-                sys.executable,
-                "report_generator.py", 
-                "--input_dir", str(evaluation_results),
-                "--out_prefix", str(results_dir / "evaluation"),
-                "--theme", theme
-            ]
+            # Check if theme is a predefined theme or custom track
+            predefined_themes = ['default', 'sustainability', 'healthcare', 'fintech', 'education', 'ai_ml']
+            
+            if theme in predefined_themes:
+                # Use predefined theme
+                cmd = [
+                    sys.executable,
+                    "report_generator.py", 
+                    "--input_dir", str(evaluation_results),
+                    "--out_prefix", str(results_dir / "evaluation"),
+                    "--theme", theme
+                ]
+            else:
+                # Custom track - load weights and pass them individually
+                tracks = load_custom_tracks()
+                if theme in tracks:
+                    track_data = tracks[theme]
+                    dimensions = track_data.get('dimensions', {})
+                    section_weights = track_data.get('section_weights', {})
+                    
+                    # Validate that we have all required weights
+                    required_dimensions = ['uniqueness', 'Completeness of the solution', 'impact on the theme chosen', 'ethical consideration']
+                    required_sections = ['problem_statement', 'proposed_solution', 'technical_architecture']
+                    
+                    missing_dims = [dim for dim in required_dimensions if dim not in dimensions]
+                    missing_sections = [sec for sec in required_sections if sec not in section_weights]
+                    
+                    if missing_dims or missing_sections:
+                        return False, f"Custom track '{theme}' is missing required weights. Missing dimensions: {missing_dims}, Missing sections: {missing_sections}"
+                    
+                    cmd = [
+                        sys.executable,
+                        "report_generator.py", 
+                        "--input_dir", str(evaluation_results),
+                        "--out_prefix", str(results_dir / "evaluation"),
+                        "--uniqueness_weight", str(dimensions['uniqueness']),
+                        "--completeness_weight", str(dimensions['Completeness of the solution']),
+                        "--impact_weight", str(dimensions['impact on the theme chosen']),
+                        "--ethics_weight", str(dimensions['ethical consideration']),
+                        "--problem_weight", str(section_weights['problem_statement']),
+                        "--solution_weight", str(section_weights['proposed_solution']),
+                        "--architecture_weight", str(section_weights['technical_architecture'])
+                    ]
+                else:
+                    # Fallback to default theme if custom track not found
+                    return False, f"Custom track '{theme}' not found in tracks configuration"
             
             result = subprocess.run(
                 cmd,
@@ -243,9 +410,8 @@ class ContentEvaluatorPipeline:
         # Load results from permanent directory since report_generator.py saves directly there
         results_dir = Path("./results")
         
-        # First try to load top 20/15 results if available
+        # First try to load top 20 results if available
         top20_csv = results_dir / "evaluation_top20.csv"
-        top15_csv = results_dir / "evaluation_top15.csv"
         main_csv = results_dir / "evaluation.csv"
         
         # Load main evaluation results (prefer top20, fallback to main)
@@ -260,15 +426,16 @@ class ContentEvaluatorPipeline:
         else:
             print("No main results CSV found in results directory")
         
-        # Load top 15 if available for comparison
-        if top15_csv.exists():
-            results['top15_scores'] = pd.read_csv(top15_csv)
-            print(f"Loaded top 15 results from {top15_csv}")
-        
         # Load per-model results
         per_model_csv = results_dir / "evaluation_per_model.csv"
         if per_model_csv.exists():
             results['per_model_scores'] = pd.read_csv(per_model_csv)
+
+        # Load certificate verification results
+        cert_verification_csv = results_dir / "certificate_verification.csv"
+        if cert_verification_csv.exists():
+            results['certificate_verification'] = pd.read_csv(cert_verification_csv)
+            print(f"Loaded certificate verification results from {cert_verification_csv}")
 
         self.results = results
         
@@ -361,10 +528,10 @@ def process_uploads(files, theme="default") -> str:
         return "No files uploaded"
     
     try:
-        # Setup environment
+        # Setup environment (this will clean old data first)
         temp_dir = pipeline.setup_temp_environment()
         print(f"Temp directory created: {temp_dir}")
-        status_msg = f"Setup complete. Processing {len(files)} files with {theme} theme...\n\n"
+        status_msg = f"🧹 Cleaned old data and setup environment.\n\nProcessing {len(files)} NEW files with {theme} theme...\n\n"
         
         # Debug file information
         for i, file in enumerate(files):
@@ -373,7 +540,7 @@ def process_uploads(files, theme="default") -> str:
         # Save uploaded files
         saved_files = pipeline.save_uploaded_files(files)
         print(f"Saved {len(saved_files)} files")
-        status_msg += f"Saved {len(saved_files)} files to temp directory\n\n"
+        status_msg += f"💾 Saved {len(saved_files)} files to processing directory\n\n"
         
         # Step 1: Run document processing (ai_evaluator_pipeline.py)
         status_msg += "Step 1: Running document processing and image extraction...\n"
@@ -404,16 +571,24 @@ def process_uploads(files, theme="default") -> str:
         if not success:
             return status_msg
         
-        # Step 3: Load results
-        status_msg += "Step 3: Loading results...\n"
+        # Step 3: Run certificate verification (if available)
+        if CERTIFICATE_VERIFICATION_AVAILABLE:
+            status_msg += "Step 3: Running certificate verification...\n"
+            success, msg = pipeline.run_certificate_verification()
+            status_msg += msg + "\n\n"
+            # Note: Continue even if certificate verification fails
+        else:
+            status_msg += "Step 3: Skipping certificate verification (pytesseract not available)\n\n"
+        
+        # Step 4: Load results
+        status_msg += "Step 4: Loading results...\n"
         results = pipeline.load_results()
         
         if 'main_scores' in results:
-            status_msg += f"Pipeline completed successfully! Generated results for {len(results['main_scores'])} submissions using {theme} theme configuration.\n\n"
+            status_msg += "Pipeline completed successfully! Generated results for {len(results['main_scores'])} submissions using {theme} theme configuration.\n\n"
             status_msg += "Results saved to ./results/ directory (TOP 20 ONLY):\n"
             status_msg += "   - evaluation.csv (top 20 main results)\n"
             status_msg += "   - evaluation_top20.csv (top 20 rankings)\n"
-            status_msg += "   - evaluation_top15.csv (top 15 rankings)\n"
             status_msg += "   - evaluation_per_model.csv (per-model scores)\n"
             status_msg += "   - evaluation_config.json (configuration used)"
             return status_msg
@@ -428,38 +603,150 @@ def process_uploads(files, theme="default") -> str:
 
 # SUBMISSIONS PAGE FUNCTIONS
 def get_submissions_table():
-    """Generate submissions table showing top 15-20 results with size optimization info."""
+    """Generate table with PPT names as rows and criteria as columns, plus download buttons."""
     if not pipeline.results or 'main_scores' not in pipeline.results:
         return "<p>No data available. Please run evaluation first.</p>"
     
     df = pipeline.results['main_scores'].copy()
     
-    # Debug: Print the raw data to ensure consistency
-    print(f"Frontend Debug - Main scores data loaded:")
-    print(f"  Columns: {list(df.columns)}")
-    print(f"  Total submissions: {len(df)}")
-    print(f"  Overall score: {df.iloc[0]['overall_score'] if len(df) > 0 else 'N/A'}")
-    if len(df) > 0:
-        for col in ['problem_statement_total', 'proposed_solution_total', 'technical_architecture_total']:
-            if col in df.columns:
-                print(f"  {col}: {df.iloc[0][col]}")
-    
-    # Add rank column properly
+    # Sort by overall score descending
     df_sorted = df.sort_values('overall_score', ascending=False).reset_index(drop=True)
-    df_sorted.insert(0, 'Rank', range(1, len(df_sorted) + 1))
     
-    # LIMIT TO TOP 20 RESULTS ONLY
-    top_20_df = df_sorted.head(20).copy()
+    # Create table with PPT names as rows and criteria as columns
+    criteria_columns = [
+        'Problem Statement', 'Proposed Solution', 'Technical Architecture', 
+        'Novelty  Uniqueness/creativity', 'presentaion', 'ethical consideration',
+        'completeness of design solution', 'implementing ibm dpk/rag/aws/watsonx/granite',
+        'overall_score', 'Certification(yes/no)', 'Feedback', 'Missing content(anything missing)'
+    ]
+    available_columns = [col for col in criteria_columns if col in df_sorted.columns]
     
-    # Round numeric columns to ensure consistent display
-    numeric_cols = top_20_df.select_dtypes(include=[np.number]).columns
-    top_20_df[numeric_cols] = top_20_df[numeric_cols].round(3)
+    if not available_columns:
+        return "<p>No scoring data available in results.</p>"
     
-    # Add header with summary information
+    # Create display dataframe with PPT names as index
+    display_df = df_sorted[['submission_id'] + available_columns].copy()
+    display_df = display_df.set_index('submission_id')
+    
+    # Round numeric columns
+    for col in available_columns:
+        if col in display_df.columns:
+            display_df[col] = display_df[col].round(2)
+    
+    # Rename columns for better display (keeping the exact names you specified)
+    column_mapping = {
+        'Problem Statement': 'Problem Statement',
+        'Proposed Solution': 'Proposed Solution', 
+        'Technical Architecture': 'Technical Architecture',
+        'Novelty  Uniqueness/creativity': 'Novelty  Uniqueness/creativity',
+        'presentaion': 'presentaion',
+        'ethical consideration': 'ethical consideration',
+        'completeness of design solution': 'completeness of design solution',
+        'implementing ibm dpk/rag/aws/watsonx/granite': 'implementing ibm dpk/rag/aws/watsonx/granite',
+        'overall_score': 'Overall Score',
+        'Certification(yes/no)': 'Certification(yes/no)',
+        'Feedback': 'Feedback',
+        'Missing content(anything missing)': 'Missing content(anything missing)'
+    }
+    
+    display_df = display_df.rename(columns=column_mapping)
+    
+    # Create HTML table with custom formatting for feedback columns
+    html_table = display_df.to_html(
+        classes="evaluation-table",
+        table_id="evaluation-results",
+        escape=False,
+        border=0
+    )
+    
+    # Add data-feedback attributes to feedback columns for styling
+    import re
+    
+    # Function to add horizontal scroll wrapper to long text
+    def wrap_long_text(text, max_length=100):
+        if len(str(text)) > max_length:
+            return f'<div data-feedback style="max-width: 300px; overflow-x: auto; white-space: nowrap;">{text}</div>'
+        return text
+    
+    # Find and replace feedback and missing content cells
+    feedback_pattern = r'<td>([^<]*(?:STRENGTHS|AREAS FOR IMPROVEMENT|Missing Requirements)[^<]*)</td>'
+    missing_pattern = r'<td>([^<]*(?:Missing|None)[^<]*)</td>'
+    
+    html_table = re.sub(feedback_pattern, lambda m: f'<td data-feedback>{wrap_long_text(m.group(1))}</td>', html_table)
+    html_table = re.sub(missing_pattern, lambda m: f'<td data-feedback>{wrap_long_text(m.group(1))}</td>', html_table)
+    
+    # Check available CSV files for download buttons
+    results_dir = Path("./results")
+    download_buttons = ""
+    
+    if results_dir.exists():
+        csv_files = [
+            ("evaluation.csv", "Complete Results", "Complete evaluation results with all details"),
+            ("evaluation_top20.csv", "Top 20 Results", "Top 20 submissions only"), 
+            ("evaluation_per_model.csv", "Per-Model Scores", "Individual model scoring breakdown"),
+            ("certificate_verification.csv", "Certificate Verification", "Certificate verification results")
+        ]
+        
+        download_buttons = """
+        <div style="
+            background: rgba(40, 167, 69, 0.15);
+            border: 2px solid rgba(40, 167, 69, 0.5);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        ">
+            <h3 style="color: #28a745; margin: 0 0 15px 0;">📥 Download Results</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px;">
+        """
+        
+        for filename, title, description in csv_files:
+            csv_path = results_dir / filename
+            if csv_path.exists():
+                file_size = csv_path.stat().st_size / 1024  # KB
+                download_buttons += f"""
+                <div style="
+                    background: white;
+                    border: 2px solid #28a745;
+                    border-radius: 8px;
+                    padding: 15px;
+                    text-align: center;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                ">
+                    <h4 style="color: #28a745; margin: 0 0 8px 0;">{title}</h4>
+                    <p style="color: #666; font-size: 14px; margin: 0 0 10px 0;">{description}</p>
+                    <p style="color: #999; font-size: 12px; margin: 0 0 15px 0;">Size: {file_size:.1f} KB</p>
+                    <button onclick="window.open('./results/{filename}', '_blank')" style="
+                        background: #28a745;
+                        color: white;
+                        border: none;
+                        padding: 10px 20px;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        font-weight: bold;
+                        font-size: 14px;
+                    ">
+                        📄 Download {filename}
+                    </button>
+                    <p style="color: #999; font-size: 11px; margin: 10px 0 0 0;">Location: ./results/{filename}</p>
+                </div>
+                """
+        
+        download_buttons += """
+            </div>
+            <div style="
+                background: rgba(40, 167, 69, 0.2);
+                padding: 15px;
+                border-radius: 8px;
+                margin-top: 15px;
+                text-align: center;
+            ">
+            </div>
+        </div>
+        """
+    
+    # Create summary header
     total_submissions = len(df_sorted)
-    showing_count = len(top_20_df)
-    
-    header_html = f"""
+    summary_html = f"""
     <div style="
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
@@ -468,347 +755,323 @@ def get_submissions_table():
         margin-bottom: 20px;
         text-align: center;
     ">
-        <h2 style="margin: 0 0 10px 0;">Final Rankings - Top {showing_count} Presentations</h2>
-        <p style="margin: 0; opacity: 0.9;">
-            Showing top {showing_count} out of {total_submissions} total submissions
-        </p>
-        <div style="
-            background: rgba(255,255,255,0.2);
-            padding: 10px;
+        <h2 style="margin: 0 0 10px 0;">Evaluation Results - {total_submissions} Submissions</h2>
+    </div>
+    """
+    
+    # Style the table
+    styled_html = f"""
+    <style>
+        .evaluation-table {{
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-family: 'Segoe UI', sans-serif;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             border-radius: 8px;
-            margin-top: 15px;
-            display: inline-block;
-        ">
-            <strong>Results saved to CSV files for final review</strong>
-        </div>
-    </div>
-    """
-    
-    # Add optimal size recommendations
-    size_recommendations_html = f"""
-    <div style="
-        background: rgba(255, 193, 7, 0.15);
-        border: 2px solid rgba(255, 193, 7, 0.5);
-        border-radius: 12px;
-        padding: 15px;
-        margin-bottom: 20px;
-    ">
-        <h3 style="color: #ffc107; margin: 0 0 10px 0; display: flex; align-items: center;">
-            <span style="margin-right: 8px;"></span> Optimal PPT Size Guidelines
-        </h3>
-        <div style="color: #e0e0e0; font-size: 14px;">
-            <p><strong>Recommended:</strong> PPT files under 5MB for optimal processing</p>
-            <p><strong>Note:</strong> Larger files may have longer processing times and reduced accuracy</p>
-            <p><strong>Top 10 optimally-sized presentations:</strong> Files under 5MB are prioritized for detailed review</p>
-        </div>
-    </div>
-    """
-    
-    # Create responsive card-based layout instead of table
-    cards_html = ""
-    optimal_size_count = 0
-    
-    for _, row in top_20_df.iterrows():
-        # Determine if this is an optimal size presentation using backend file size data
-        file_size_mb = row.get('file_size_mb', 0)
-        is_optimal_size = False
+            overflow: hidden;
+            font-size: 14px;
+        }}
+        .evaluation-table th {{
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 8px;
+            text-align: center;
+            font-weight: 600;
+            border-bottom: 2px solid #5a67d8;
+        }}
+        .evaluation-table td {{
+            padding: 10px 8px;
+            text-align: center;
+            border-bottom: 1px solid #e2e8f0;
+            background-color: #1a1a1a;
+            color: #ffffff;
+        }}
+        .evaluation-table th:first-child {{
+            text-align: left;
+            padding-left: 15px;
+        }}
+        .evaluation-table td:first-child {{
+            text-align: left;
+            font-weight: bold;
+            background-color: #2a2a2a;
+            min-width: 200px;
+            padding-left: 15px;
+        }}
+        .evaluation-table tr:nth-child(even) td {{
+            background-color: #2a2a2a;
+        }}
+        .evaluation-table tr:nth-child(even) td:first-child {{
+            background-color: #3a3a3a;
+        }}
+        .evaluation-table tr:hover td {{
+            background-color: #3a3a3a;
+        }}
+        .evaluation-table tr:hover td:first-child {{
+            background-color: #4a4a4a;
+        }}
         
-        if file_size_mb > 0 and file_size_mb <= 5.0:
-            is_optimal_size = True
-            optimal_size_count += 1
-        elif optimal_size_count < 10 and file_size_mb == 0:  # Fallback if no size data
-            is_optimal_size = True
-            optimal_size_count += 1
-        
-        rank_color = "#FFD700" if row['Rank'] == 1 else "#C0C0C0" if row['Rank'] == 2 else "#CD7F32" if row['Rank'] == 3 else "#667eea"
-        
-        # Add special styling for optimal size presentations
-        border_style = f"3px solid {rank_color}"
-        if is_optimal_size and row['Rank'] <= 10:
-            border_style = f"3px solid #28a745"  # Green border for optimal size
-        
-        cards_html += f"""
-        <div style="
-            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
-            border: {border_style};
-            border-radius: 12px;
-            padding: 20px;
-            margin: 15px 0;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        /* Feedback column styling with horizontal scroll */
+        .evaluation-table td:has-text("Feedback"), 
+        .evaluation-table td:has-text("Missing content"),
+        .evaluation-table th:has-text("Feedback"),
+        .evaluation-table th:has-text("Missing content") {{
+            max-width: 300px;
+            white-space: nowrap;
+            overflow-x: auto;
+            text-align: left;
             position: relative;
-        ">
-        """
+        }}
         
-        # Add optimal size badge with actual file size
-        if is_optimal_size and row['Rank'] <= 10:
-            file_size = row.get('file_size_mb', 0)
-            size_text = f"({file_size:.1f}MB)" if file_size > 0 else ""
-            cards_html += f"""
+        /* Style for feedback and missing content columns */
+        .evaluation-table td[data-feedback] {{
+            max-width: 300px;
+            white-space: nowrap;
+            overflow-x: auto;
+            text-align: left;
+            padding: 8px;
+            cursor: text;
+        }}
+        
+        /* Add scrollbar styling for better visibility */
+        .evaluation-table td[data-feedback]::-webkit-scrollbar {{
+            height: 6px;
+        }}
+        
+        .evaluation-table td[data-feedback]::-webkit-scrollbar-track {{
+            background: #444;
+            border-radius: 3px;
+        }}
+        
+        .evaluation-table td[data-feedback]::-webkit-scrollbar-thumb {{
+            background: #666;
+            border-radius: 3px;
+        }}
+        
+        .evaluation-table td[data-feedback]::-webkit-scrollbar-thumb:hover {{
+            background: #777;
+        }}
+        
+        button:hover {{
+            background: #218838 !important;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }}
+    </style>
+    
+    {summary_html}
+    {download_buttons}
+    {html_table}
+    """
+    
+    return styled_html
+
+# CERTIFICATE VERIFICATION FUNCTIONS
+def get_certificate_verification_results():
+    """Generate certificate verification results table."""
+    if not pipeline.results or 'certificate_verification' not in pipeline.results:
+        if not CERTIFICATE_VERIFICATION_AVAILABLE:
+            return """
             <div style="
-                position: absolute;
-                top: -10px;
-                right: 15px;
-                background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-                color: white;
-                padding: 5px 12px;
-                border-radius: 15px;
-                font-size: 12px;
-                font-weight: bold;
-                box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-            ">
-                OPTIMAL SIZE {size_text}
-            </div>
-            """
-        
-        cards_html += f"""
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <div style="
-                    background: {rank_color};
-                    color: #1a1a1a;
-                    padding: 8px 16px;
-                    border-radius: 20px;
-                    font-weight: bold;
-                    font-size: 14px;
-                ">
-                    Rank #{row['Rank']}
-                </div>
-                <div style="
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    color: white;
-                    padding: 8px 16px;
-                    border-radius: 20px;
-                    font-weight: bold;
-                    font-size: 16px;
-                ">
-                    {row['overall_score']:.3f}
-                </div>
-            </div>
-            
-            <h3 style="color: #ffffff; margin: 0 0 15px 0; font-size: 18px;">
-                {row['submission_id'] if 'submission_id' in row else 'Unknown Submission'}
-            </h3>
-            
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-        """
-        
-        # Add all other columns as key-value pairs (except feedback which we'll handle separately)
-        for col in top_20_df.columns:
-            if col not in ['Rank', 'submission_id', 'overall_score', 'feedback'] and pd.notna(row[col]):
-                display_name = col.replace('_', ' ').title().replace('Total', 'Score')
-                # Format the value properly with higher precision
-                if isinstance(row[col], (int, float)):
-                    formatted_value = f"{row[col]:.3f}"
-                else:
-                    formatted_value = str(row[col])
-                
-                cards_html += f"""
-                <div style="
-                    background: rgba(255,255,255,0.1);
-                    padding: 12px;
-                    border-radius: 8px;
-                    border-left: 4px solid #667eea;
-                ">
-                    <div style="color: #cccccc; font-size: 12px; margin-bottom: 4px;">
-                        {display_name}
-                    </div>
-                    <div style="color: #ffffff; font-weight: bold; font-size: 16px;">
-                        {formatted_value}
-                    </div>
-                </div>
-                """
-        
-        cards_html += """
-            </div>
-        """
-        
-        # Add feedback section if available
-        if 'feedback' in row and pd.notna(row['feedback']) and str(row['feedback']).strip():
-            feedback_text = str(row['feedback']).strip()
-            cards_html += f"""
-            <div style="
-                background: rgba(102, 126, 234, 0.15);
-                border: 1px solid rgba(102, 126, 234, 0.3);
-                border-radius: 8px;
-                padding: 15px;
-                margin-top: 15px;
-            ">
-                <h4 style="color: #667eea; margin: 0 0 10px 0; font-size: 16px; display: flex; align-items: center;">
-                    <span style="margin-right: 8px;">💡</span> AI Feedback
-                </h4>
-                <div style="
-                    color: #e0e0e0;
-                    font-size: 14px;
-                    line-height: 1.5;
-                    white-space: pre-line;
-                    max-height: 200px;
-                    overflow-y: auto;
-                    padding: 10px;
-                    background: rgba(0,0,0,0.3);
-                    border-radius: 6px;
-                ">
-                    {feedback_text}
-                </div>
-            </div>
-            """
-        
-        # Add missing requirements section if available
-        if 'missing_requirements' in row and pd.notna(row['missing_requirements']) and str(row['missing_requirements']).strip():
-            missing_reqs = str(row['missing_requirements']).strip()
-            if missing_reqs and missing_reqs != "[]":
-                cards_html += f"""
-                <div style="
-                    background: rgba(244, 67, 54, 0.15);
-                    border: 1px solid rgba(244, 67, 54, 0.3);
-                    border-radius: 8px;
-                    padding: 15px;
-                    margin-top: 10px;
-                ">
-                    <h4 style="color: #f44336; margin: 0 0 10px 0; font-size: 16px; display: flex; align-items: center;">
-                        <span style="margin-right: 8px;"></span> Missing Requirements
-                    </h4>
-                    <div style="
-                        color: #ffcdd2;
-                        font-size: 14px;
-                        line-height: 1.5;
-                        padding: 10px;
-                        background: rgba(244, 67, 54, 0.1);
-                        border-radius: 6px;
-                    ">
-                        {missing_reqs}
-                    </div>
-                </div>
-                """
-        
-        # Add track information
-        if 'track' in row and pd.notna(row['track']):
-            track_name = str(row['track']).replace('_', ' ').title()
-            cards_html += f"""
-            <div style="
-                background: rgba(76, 175, 80, 0.15);
-                border: 1px solid rgba(76, 175, 80, 0.3);
-                border-radius: 8px;
-                padding: 10px;
-                margin-top: 10px;
+                background: rgba(255, 193, 7, 0.15);
+                border: 2px solid rgba(255, 193, 7, 0.5);
+                border-radius: 12px;
+                padding: 20px;
+                margin: 20px 0;
                 text-align: center;
             ">
-                <span style="color: #4caf50; font-size: 14px; font-weight: bold;">
-                    🏆 Track: {track_name}
-                </span>
+                <h3 style="color: #856404; margin: 0 0 15px 0;">⚠️ Certificate Verification Not Available</h3>
+                <p style="color: #856404; margin: 0;">
+                    To enable certificate verification, please install pytesseract:<br>
+                    <code>pip install pytesseract</code><br>
+                    <em>Also ensure Tesseract OCR binary is installed on your system</em>
+                </p>
             </div>
             """
-        
-        cards_html += """
-        </div>
-        """
+        else:
+            return "<p>No certificate verification data available. Please run evaluation first.</p>"
     
-    # Add final summary section
+    df = pipeline.results['certificate_verification'].copy()
+    
+    if df.empty:
+        return "<p>No certificate verification results found.</p>"
+    
+    # Sort by verification success and similarity score
+    df_sorted = df.sort_values(['ok', 'similarity'], ascending=[False, False]).reset_index(drop=True)
+    
+    # Count statistics
+    total_submissions = len(df_sorted)
+    verified_count = len(df_sorted[df_sorted['ok'] == True])
+    failed_count = total_submissions - verified_count
+    
+    # Create summary header
     summary_html = f"""
     <div style="
         background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
         color: white;
         padding: 20px;
         border-radius: 12px;
-        margin-top: 30px;
+        margin-bottom: 20px;
         text-align: center;
     ">
-        <h3 style="margin: 0 0 15px 0;">📋 Evaluation Summary</h3>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+        <h2 style="margin: 0 0 10px 0;">Certificate Verification Results</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 15px;">
             <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 8px;">
                 <div style="font-size: 24px; font-weight: bold; margin-bottom: 5px;">{total_submissions}</div>
-                <div style="font-size: 14px; opacity: 0.9;">Total Submissions</div>
+                <div style="font-size: 14px; opacity: 0.9;">Total Checked</div>
             </div>
             <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 8px;">
-                <div style="font-size: 24px; font-weight: bold; margin-bottom: 5px;">{showing_count}</div>
-                <div style="font-size: 14px; opacity: 0.9;">Top Results Shown</div>
+                <div style="font-size: 24px; font-weight: bold; margin-bottom: 5px;">{verified_count}</div>
+                <div style="font-size: 14px; opacity: 0.9;">Verified ✅</div>
             </div>
             <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 8px;">
-                <div style="font-size: 24px; font-weight: bold; margin-bottom: 5px;">{optimal_size_count}</div>
-                <div style="font-size: 14px; opacity: 0.9;">Optimal Size PPTs</div>
+                <div style="font-size: 24px; font-weight: bold; margin-bottom: 5px;">{failed_count}</div>
+                <div style="font-size: 14px; opacity: 0.9;">Failed ❌</div>
             </div>
-        </div>
-        <div style="
-            background: rgba(255,255,255,0.2);
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 15px;
-        ">
-            <strong>📁 All results exported to CSV files for final review and decision making</strong>
         </div>
     </div>
     """
     
-    # Return header + size recommendations + cards + summary
-    return header_html + size_recommendations_html + cards_html + summary_html
-
-def get_per_submission_model_scores():
-    """Generate per-submission tables with all model scores."""
-    if not pipeline.results or 'per_model_scores' not in pipeline.results:
-        return "<p>No per-model data available.</p>"
+    # Create results cards
+    cards_html = ""
     
-    per_model_df = pipeline.results['per_model_scores']
-    html = ""
-    
-    # Get unique submissions
-    if 'submission_id' in per_model_df.columns:
-        submissions = per_model_df['submission_id'].unique()
+    for _, row in df_sorted.iterrows():
+        submission_name = row.get('submission_name', 'Unknown')
+        is_verified = row.get('ok', False)
+        similarity = row.get('similarity', 0.0)
         
-        for submission in submissions:
-            submission_data = per_model_df[per_model_df['submission_id'] == submission]
-            
-            # Create pivot table for this submission
-            if 'evaluator_model' in submission_data.columns and 'section_total' in submission_data.columns:
-                pivot_df = submission_data.pivot_table(
-                    index='section',
-                    columns='evaluator_model', 
-                    values='section_total',
-                    aggfunc='mean'
-                ).round(3)  # Increased precision for consistency
-                
-                html += f"""
-                <div style="background: linear-gradient(135deg, #764ba2 0%, #667eea 100%); color: white; padding: 12px; margin: 20px 0 5px 0; border-radius: 6px;">
-                    <h4>{submission} - Model Comparison</h4>
-                </div>
-                """
-                html += pivot_df.to_html(classes="model-scores-table", escape=False)
-    
-    # Add styling
-    styled_html = f"""
-    <style>
-        .model-scores-table {{
-            width: 100%;
-            border-collapse: collapse;
+        # Status styling
+        if is_verified:
+            status_color = "#28a745"
+            status_icon = "✅"
+            status_text = "VERIFIED"
+            border_color = "#28a745"
+        else:
+            status_color = "#dc3545"
+            status_icon = "❌"
+            status_text = "FAILED"
+            border_color = "#dc3545"
+        
+        cards_html += f"""
+        <div style="
+            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+            border: 3px solid {border_color};
+            border-radius: 12px;
+            padding: 20px;
             margin: 15px 0;
-            font-family: 'Segoe UI', sans-serif;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            border-radius: 8px;
-            overflow: hidden;
-            font-size: 13px;
-        }}
-        .model-scores-table th, .model-scores-table td {{
-            padding: 10px 12px;
-            text-align: center;
-            border-bottom: 1px solid #e0e0e0;
-        }}
-        .model-scores-table th {{
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            font-weight: 600;
-        }}
-        .model-scores-table td {{
-            background-color: #1a1a1a;
-            color: #ffffff;
-        }}
-        .model-scores-table tr:nth-child(even) td {{
-            background-color: #2a2a2a;
-        }}
-        .model-scores-table tr:hover td {{
-            background-color: #3a3a3a;
-        }}
-    </style>
-    {html}
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        ">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="color: #ffffff; margin: 0; font-size: 18px;">
+                    {submission_name}
+                </h3>
+                <div style="
+                    background: {status_color};
+                    color: white;
+                    padding: 8px 16px;
+                    border-radius: 20px;
+                    font-weight: bold;
+                    font-size: 14px;
+                ">
+                    {status_icon} {status_text}
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                <div style="
+                    background: rgba(255,255,255,0.1);
+                    padding: 15px;
+                    border-radius: 8px;
+                    border-left: 4px solid {status_color};
+                ">
+                    <div style="color: #cccccc; font-size: 12px; margin-bottom: 8px;">
+                        Similarity Score
+                    </div>
+                    <div style="color: #ffffff; font-weight: bold; font-size: 20px;">
+                        {similarity:.1%}
+                    </div>
+                    <div style="background: #e9ecef; height: 6px; border-radius: 3px; margin-top: 8px;">
+                        <div style="background: {status_color}; height: 6px; border-radius: 3px; width: {similarity*100:.1f}%;"></div>
+                    </div>
+                </div>
+        """
+        
+        # Add extracted information if available
+        if 'extracted' in row and pd.notna(row['extracted']):
+            try:
+                extracted = json.loads(row['extracted']) if isinstance(row['extracted'], str) else row['extracted']
+                if extracted:
+                    cards_html += f"""
+                    <div style="
+                        background: rgba(102, 126, 234, 0.15);
+                        padding: 15px;
+                        border-radius: 8px;
+                        border-left: 4px solid #667eea;
+                    ">
+                        <div style="color: #cccccc; font-size: 12px; margin-bottom: 8px;">
+                            Extracted Information
+                        </div>
+                        <div style="color: #ffffff; font-size: 14px; line-height: 1.4;">
+                            <strong>Name:</strong> {extracted.get('name', 'N/A')}<br>
+                            <strong>Program:</strong> {extracted.get('program', 'N/A')}<br>
+                            <strong>Code:</strong> {extracted.get('code', 'N/A')}
+                        </div>
+                    </div>
+                    """
+            except:
+                pass
+        
+        # Add error information if verification failed
+        if not is_verified and 'error' in row and pd.notna(row['error']):
+            error_msg = str(row['error'])
+            cards_html += f"""
+            <div style="
+                background: rgba(244, 67, 54, 0.15);
+                padding: 15px;
+                border-radius: 8px;
+                border-left: 4px solid #f44336;
+            ">
+                <div style="color: #cccccc; font-size: 12px; margin-bottom: 8px;">
+                    Error Details
+                </div>
+                <div style="color: #ffcdd2; font-size: 14px; line-height: 1.4;">
+                    {error_msg}
+                </div>
+            </div>
+            """
+        
+        cards_html += """
+            </div>
+        </div>
+        """
+    
+    # Add download information
+    download_html = f"""
+    <div style="
+        background: rgba(40, 167, 69, 0.15);
+        border: 2px solid rgba(40, 167, 69, 0.5);
+        border-radius: 12px;
+        padding: 15px;
+        margin-top: 20px;
+    ">
+        <h3 style="color: #28a745; margin: 0 0 10px 0; display: flex; align-items: center;">
+            <span style="margin-right: 8px;">📄</span> Certificate Verification Report
+        </h3>
+        <div style="color: #e0e0e0; font-size: 14px;">
+            <p><strong>Detailed report available:</strong></p>
+            <ul>
+                <li><strong>certificate_verification.csv</strong> - Complete verification results</li>
+            </ul>
+            <p><em>Location: ./results/certificate_verification.csv</em></p>
+        </div>
+    </div>
     """
     
-    return styled_html
+    return summary_html + cards_html + download_html
+
+def get_per_submission_model_scores():
+    """Per-submission model comparison removed for simplified interface."""
+    return "<p>Per-submission model comparison tables have been removed for a cleaner interface. Use the CSV downloads for detailed model scoring data.</p>"
 
 # MODEL PAGE FUNCTIONS
 def get_available_models():
@@ -1419,6 +1682,14 @@ def create_interface():
                     value="<em>No data available for analytics.</em>"
                 )
             
+            # Certificate Verification Tab
+            with gr.Tab("Certificates", id="certificates"):
+                gr.Markdown("### **Certificate Verification Results**")
+                certificate_output = gr.HTML(
+                    label="Certificate Verification",
+                    value="<em>No certificate verification data available.</em>"
+                )
+            
             with gr.Tab("Tracks", id="tracks"):
                 gr.Markdown("### **Track Management & Configuration**")
                 
@@ -1521,7 +1792,7 @@ def create_interface():
             print(f"Button clicked! Files received: {files}, Theme: {theme}")
             if not files:
                 print("No files provided")
-                return "Please upload at least one PPT file", gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
+                return "Please upload at least one PPT file", gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
             
             if not theme:
                 error_html = """
@@ -1530,7 +1801,7 @@ def create_interface():
                     Please create and select a track in the Tracks tab before starting evaluation.
                 </div>
                 """
-                return error_html, gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
+                return error_html, gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
             
             print(f"Processing {len(files)} files with {theme} theme...")
             
@@ -1547,7 +1818,7 @@ def create_interface():
             </div>
             <style>@keyframes spin {{ 0% {{ transform: rotate(0deg); }} 100% {{ transform: rotate(360deg); }} }}</style>
             """
-            yield setup_html, gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
+            yield setup_html, gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
             
             # Step 2: File processing
             try:
@@ -1560,7 +1831,7 @@ def create_interface():
                     <small>Saved {len(saved_files)} files to processing directory</small>
                 </div>
                 """
-                yield file_process_html, gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
+                yield file_process_html, gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
                 
                 # Step 3: Document processing
                 doc_process_html = file_process_html + f"""
@@ -1574,7 +1845,7 @@ def create_interface():
                     </div>
                 </div>
                 """
-                yield doc_process_html, gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
+                yield doc_process_html, gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
                 
                 success, msg = pipeline.run_document_processing()
                 if not success:
@@ -1584,7 +1855,7 @@ def create_interface():
                         <small>{msg}</small>
                     </div>
                     """
-                    yield error_html, gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
+                    yield error_html, gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
                     return
                 
                 eval_start_html = doc_process_html + f"""
@@ -1602,7 +1873,7 @@ def create_interface():
                     </div>
                 </div>
                 """
-                yield eval_start_html, gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
+                yield eval_start_html, gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
                 
                 success, eval_msg = pipeline.run_evaluation(theme)
                 if not success:
@@ -1612,7 +1883,7 @@ def create_interface():
                         <small>{eval_msg}</small>
                     </div>
                     """
-                    yield error_html, gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
+                    yield error_html, gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
                     return
                 
                 # Step 5: Loading results
@@ -1631,7 +1902,7 @@ def create_interface():
                     </div>
                 </div>
                 """
-                yield results_load_html, gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
+                yield results_load_html, gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
                 
                 # Load and refresh results
                 results = pipeline.load_results()
@@ -1641,7 +1912,7 @@ def create_interface():
                     success_html = f"""
                     <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 20px; border-radius: 12px; text-align: center;">
                         <h3>Evaluation Complete!</h3>
-                        <p><strong>Track:</strong> {theme} | <strong>Submissions:</strong> {len(results['main_scores'])}</p>
+                        <strong>Submissions:</strong> {len(results['main_scores'])}</p>
                         <p>Results loaded successfully. Check the Submissions tab for rankings!</p>
                     </div>
                     """
@@ -1653,6 +1924,7 @@ def create_interface():
                     first_model = models[0] if models else None
                     model_scores_html = get_model_scores_table(first_model) if first_model else "<p>No models available</p>"
                     analytics_html = generate_analytics_charts()
+                    certificate_html = get_certificate_verification_results()
                     
                     yield (
                         success_html,
@@ -1660,7 +1932,8 @@ def create_interface():
                         per_submission_html,
                         gr.update(choices=models, value=first_model),
                         model_scores_html,
-                        analytics_html
+                        analytics_html,
+                        certificate_html
                     )
                 else:
                     error_html = results_load_html + f"""
@@ -1669,7 +1942,7 @@ def create_interface():
                         <small>Evaluation completed but no results were generated</small>
                     </div>
                     """
-                    yield error_html, gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
+                    yield error_html, gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
                     
             except Exception as e:
                 error_html = f"""
@@ -1679,12 +1952,15 @@ def create_interface():
                     <small>Please try again or check the file formats</small>
                 </div>
                 """
-                yield error_html, gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
+                yield error_html, gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
         
         def refresh_submissions():
             submissions_html = get_submissions_table()
             per_submission_html = get_per_submission_model_scores()
             return submissions_html, per_submission_html
+        
+        def refresh_certificates():
+            return get_certificate_verification_results()
         
         def refresh_models():
             models = get_available_models()
@@ -1716,7 +1992,7 @@ def create_interface():
         evaluate_btn.click(
             fn=start_and_run_evaluation,
             inputs=[file_upload, theme_dropdown],
-            outputs=[status_output, submissions_output, per_submission_output, model_radio, model_output, analytics_output]
+            outputs=[status_output, submissions_output, per_submission_output, model_radio, model_output, analytics_output, certificate_output]
         )
 
         model_radio.change(
@@ -1833,13 +2109,7 @@ def main():
         
         # Create and launch interface
         interface = create_interface()
-        
-        print("Starting AI Content Evaluator...")
-        print("Upload PPT files and navigate between tabs to view results")
-        print("Recommendation: Keep PPT files under 5MB for optimal processing")
-        print("Final results: Only top 15-20 presentations will be shown with CSV export")
-        
-        # Try to find an available port
+
         import socket
         
         def find_free_port(start_port=7860, max_port=7870):

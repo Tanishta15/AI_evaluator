@@ -1,15 +1,63 @@
-submission_id,problem_statement_uniqueness,problem_statement_Completeness of the solution,problem_statement_impact on the theme chosen,problem_statement_ethical consideration,problem_statement_total,proposed_solution_uniqueness,proposed_solution_Completeness of the solution,proposed_solution_impact on the theme chosen,proposed_solution_ethical consideration,proposed_solution_total,technical_architecture_uniqueness,technical_architecture_Completeness of the solution,technical_architecture_impact on the theme chosen,technical_architecture_ethical consideration,technical_architecture_total,overall_score,file_size_mb,file_size_factor,feedback,missing_requirements,track
-MindEase,3.8,2.395,4.0675,4.215,3.521,2.375,1.5,2.75,2.875,2.3,0.95,0.625,0.9,0.55,0.7775,2.24009625,1.6065130233764648,1.05,"STRENGTHS:
-• Problem Statement: Clearly defines a problem related to digital well-being, introduces agentic AI for personalized recommendations, emphasizes ethical considerations through Granite's oversight.
-• Problem Statement: Clearly defines a unique, realistic problem, emphasizes user-centric approach, and integrates agentic AI for tailored recommendations.
-• Problem Statement: Clearly defines a relevant problem in healthcare and mentions the use of Agentic AI and ethical oversight.
+submission_id,problem_statement_Problem Statement,problem_statement_Proposed Solution,problem_statement_Technical Architecture,problem_statement_Novelty  Uniqueness/creativity,problem_statement_presentaion,problem_statement_ethical consideration,problem_statement_completeness of design solution,problem_statement_implementing ibm dpk/rag/aws/watsonx/granite,problem_statement_uniqueness,problem_statement_Completeness of the solution,problem_statement_impact on the theme chosen,problem_statement_total,proposed_solution_Problem Statement,proposed_solution_Proposed Solution,proposed_solution_Technical Architecture,proposed_solution_Novelty  Uniqueness/creativity,proposed_solution_presentaion,proposed_solution_ethical consideration,proposed_solution_completeness of design solution,proposed_solution_implementing ibm dpk/rag/aws/watsonx/granite,proposed_solution_uniqueness,proposed_solution_Completeness of the solution,proposed_solution_impact on the theme chosen,proposed_solution_total,technical_architecture_Problem Statement,technical_architecture_Proposed Solution,technical_architecture_Technical Architecture,technical_architecture_Novelty  Uniqueness/creativity,technical_architecture_presentaion,technical_architecture_ethical consideration,technical_architecture_completeness of design solution,technical_architecture_implementing ibm dpk/rag/aws/watsonx/granite,technical_architecture_uniqueness,technical_architecture_Completeness of the solution,technical_architecture_impact on the theme chosen,technical_architecture_total,overall_score,file_size_mb,file_size_factor,missing_sections,missing_sections_count,content_status,feedback,missing_requirements,track,Problem Statement,Proposed Solution,Technical Architecture,Novelty  Uniqueness/creativity,presentaion,ethical consideration,completeness of design solution,implementing ibm dpk/rag/aws/watsonx/granite,uniqueness,Completeness of the solution,impact on the theme chosen,Certification(yes/no),Feedback,Missing content(anything missing)
+COSMIC_CODERS,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.9,2.25,5.75,3.75,5.75,5.0,5.5,5.25,6.5,0.0,0.0,0.0,5.2749999999999995,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.9,3.2353125,1.704300880432129,1.05,"Problem Statement, Technical Architecture",2,"{""problem_statement"": {""has_content"": false, ""content_length"": 0, ""is_substantial"": false}, ""proposed_solution"": {""has_content"": true, ""content_length"": 482, ""is_substantial"": true}, ""technical_architecture"": {""has_content"": false, ""content_length"": 0, ""is_substantial"": false}}","STRENGTHS:
+• The solution mentions key technologies such as Agentic AI, RAG, and Granite from IBM, which are relevant and innovative.
+• The solution leverages multiple IBM tools to create a comprehensive approach to urban planning, addressing contextual relevance, environmental ethics, and legal compliance.
+• Comprehensive use of IBM's Gen AI technologies, clear explanation of each component's role, and focus on ethical considerations.
+• Clearly defines the roles of Agentic AI, RAG, and Granite in the solution. Emphasizes the use of IBM Watsonx and IBM Granite APIs.
 
 AREAS FOR IMPROVEMENT:
-• Problem Statement: Specify how this solution addresses healthcare themes such as patient safety, medical data privacy, or clinical validation. Mention traditional AI implementation details and provide evidence of bias testing.
-• Problem Statement: Could benefit from explicit mention of IBM Watson Data Preparation Toolkit or AWS services used.
-• Problem Statement: Needs more specifics on the data preparation toolkit, how Agentic AI will be applied, and evidence of a working prototype or clear plan for its development. Missing required elements include a YouTube video link, explicit mention of IBM or AWS, and details on bias testing methodology.
-• Problem Statement: Needs more detail on how IBM/AWS will be used, prototype evidence, and bias testing methodology.
-• Proposed Solution: Missing required elements include a working prototype, YouTube video link, and explicit mention of IBM or AWS. Also, more technical details on how Agentic AI and Granite are utilized would strengthen the proposal.
+• Missing required sections: Problem Statement, Technical Architecture
+• Needs a clear problem statement, structured presentation, and explanation of technical architecture. Also, mentions of bias testing and ethical considerations are absent.
+• None identified.
+• Missing detailed explanation of the problem statement, how the solution addresses it, technical architecture details, bias testing methodology, and completeness of the design.
+• Lack of explicit certification, limited information on bias testing methodology, and no clear demonstration of a working prototype.
 
 FILE SIZE OPTIMIZATION:
-• Optimal file size (1.6MB) - processing efficiency bonus applied",[],healthcare
+• Optimal file size (1.7MB) - processing efficiency bonus applied",[],custom,1.4375000000000002,2.6625,1.9625000000000001,2.6625,2.4000000000000004,2.575,2.4875000000000003,2.9250000000000003,0.65,0.65,0.65,no,"STRENGTHS:
+• The solution mentions key technologies such as Agentic AI, RAG, and Granite from IBM, which are relevant and innovative.
+• The solution leverages multiple IBM tools to create a comprehensive approach to urban planning, addressing contextual relevance, environmental ethics, and legal compliance.
+• Comprehensive use of IBM's Gen AI technologies, clear explanation of each component's role, and focus on ethical considerations.
+• Clearly defines the roles of Agentic AI, RAG, and Granite in the solution. Emphasizes the use of IBM Watsonx and IBM Granite APIs.
+
+AREAS FOR IMPROVEMENT:
+• Missing required sections: Problem Statement, Technical Architecture
+• Needs a clear problem statement, structured presentation, and explanation of technical architecture. Also, mentions of bias testing and ethical considerations are absent.
+• None identified.
+• Missing detailed explanation of the problem statement, how the solution addresses it, technical architecture details, bias testing methodology, and completeness of the design.
+• Lack of explicit certification, limited information on bias testing methodology, and no clear demonstration of a working prototype.
+
+FILE SIZE OPTIMIZATION:
+• Optimal file size (1.7MB) - processing efficiency bonus applied",None
+Ascent,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.9,2.0,4.25,4.0,3.75,3.75,2.25,4.0,4.25,0.75,0.75,0.75,4.375,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.9,2.9045625,7.533148765563965,1.05,"Problem Statement, Technical Architecture",2,"{""problem_statement"": {""has_content"": false, ""content_length"": 0, ""is_substantial"": false}, ""proposed_solution"": {""has_content"": true, ""content_length"": 600, ""is_substantial"": true}, ""technical_architecture"": {""has_content"": false, ""content_length"": 0, ""is_substantial"": false}}","STRENGTHS:
+• The solution presents a well-defined approach to building an Agentic AI RAG system using IBM Slate and Data Prep Kit. It also emphasizes the importance of maintaining agent memory for improved accuracy.
+• The solution outlines a general approach to building a knowledge base and using LangChain and IBM Slate model/DPK for document processing.
+• The solution provides a clear overview of the technical architecture, including the use of LangChain, IBM Slate model, and Data Prep Kit. The setup of a retriever and agent memory also shows promise for creating an effective Agentic AI RAG System.
+• Unable to evaluate due to technical issue
+
+AREAS FOR IMPROVEMENT:
+• More details are needed on how the system will process user queries and update agent memory. Additionally, the presentation could benefit from more visual aids to illustrate the technical architecture.
+• Missing required sections: Problem Statement, Technical Architecture
+• Evaluation failed for model ibm/granite-3-2b-instruct: Model evaluation failed: Could not parse JSON response: {
+  ""section"": ""proposed_solution"",
+  ""score...
+• Missing detailed explanation of the problem statement, ethical considerations, and completeness of the design solution. The presentation could be more structured and detailed. Technical architecture needs more clarity and diagrams.
+• Section appears to be missing or has insufficient content. Please provide detailed problem statement information.
+
+FILE SIZE OPTIMIZATION:
+• Optimal file size (7.5MB) - processing efficiency bonus applied",[],custom,1.3500000000000003,2.1375,2.0500000000000003,1.9625000000000001,1.9625000000000001,1.4375000000000002,2.0500000000000003,2.1375,0.9125000000000001,0.9125000000000001,0.9125000000000001,no,"STRENGTHS:
+• The solution presents a well-defined approach to building an Agentic AI RAG system using IBM Slate and Data Prep Kit. It also emphasizes the importance of maintaining agent memory for improved accuracy.
+• The solution outlines a general approach to building a knowledge base and using LangChain and IBM Slate model/DPK for document processing.
+• The solution provides a clear overview of the technical architecture, including the use of LangChain, IBM Slate model, and Data Prep Kit. The setup of a retriever and agent memory also shows promise for creating an effective Agentic AI RAG System.
+• Unable to evaluate due to technical issue
+
+AREAS FOR IMPROVEMENT:
+• More details are needed on how the system will process user queries and update agent memory. Additionally, the presentation could benefit from more visual aids to illustrate the technical architecture.
+• Missing required sections: Problem Statement, Technical Architecture
+• Evaluation failed for model ibm/granite-3-2b-instruct: Model evaluation failed: Could not parse JSON response: {
+  ""section"": ""proposed_solution"",
+  ""score...
+• Missing detailed explanation of the problem statement, ethical considerations, and completeness of the design solution. The presentation could be more structured and detailed. Technical architecture needs more clarity and diagrams.
+• Section appears to be missing or has insufficient content. Please provide detailed problem statement information.
+
+FILE SIZE OPTIMIZATION:
+• Optimal file size (7.5MB) - processing efficiency bonus applied",None
