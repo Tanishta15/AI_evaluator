@@ -309,7 +309,8 @@ class EnhancedContentExtractor:
                     content = self._format_team_content(slide_texts, tables > 0)
                 
                 # Extract and save images from this slide
-                extracted_images = self._extract_and_save_images(slide, i, file_path)
+                all_slide_text = " ".join(slide_texts)  # Combine all text for context
+                extracted_images = self._extract_and_save_images(slide, i, file_path, all_slide_text)
                 
                 slides.append({
                     'slide_number': i,
@@ -358,7 +359,7 @@ class EnhancedContentExtractor:
             self.logger.warning(f"⚠️ Error formatting team content: {e}")
             return "\n".join(slide_texts[1:]) if len(slide_texts) > 1 else ""
     
-    def _extract_and_save_images(self, slide, slide_number: int, source_file_path: str) -> List[str]:
+    def _extract_and_save_images(self, slide, slide_number: int, source_file_path: str, slide_content: str = "") -> List[str]:
         """Extract and save meaningful images from a PowerPoint slide (skip small/insignificant images)."""
         extracted_images = []
         
@@ -370,8 +371,14 @@ class EnhancedContentExtractor:
             images_dir.mkdir(parents=True, exist_ok=True)
             
             image_count = 0
-            for shape in slide.shapes:
+            total_shapes = len(slide.shapes)
+            image_shapes = 0
+            
+            self.logger.info(f"🔍 Processing slide {slide_number}: {total_shapes} shapes found")
+            
+            for shape_idx, shape in enumerate(slide.shapes):
                 if shape.shape_type == 13:  # Picture/Image
+                    image_shapes += 1
                     try:
                         # Get image properties for filtering
                         width = shape.width
@@ -379,8 +386,10 @@ class EnhancedContentExtractor:
                         image = shape.image
                         image_bytes = image.blob
                         
-                        # Filter out small/insignificant images
-                        if self._is_meaningful_image(width, height, len(image_bytes)):
+                        self.logger.info(f"📷 Found image {image_shapes} on slide {slide_number}: {width}x{height} EMU, {len(image_bytes)} bytes")
+                        
+                        # Filter out small/insignificant images using context
+                        if self._is_meaningful_image(width, height, len(image_bytes), slide_content, slide_number):
                             image_count += 1
                             
                             # Determine file extension
@@ -399,10 +408,15 @@ class EnhancedContentExtractor:
                             extracted_images.append(str(image_path))
                             self.logger.info(f"💾 Saved meaningful image: {image_path}")
                         else:
-                            self.logger.debug(f"⏭️ Skipped small/insignificant image on slide {slide_number}")
+                            self.logger.info(f"⏭️ Skipped image on slide {slide_number} (failed criteria)")
                         
                     except Exception as img_error:
                         self.logger.warning(f"⚠️ Could not extract image {image_count} from slide {slide_number}: {img_error}")
+            
+            if image_shapes == 0:
+                self.logger.info(f"📭 No images found on slide {slide_number}")
+            else:
+                self.logger.info(f"📊 Slide {slide_number} summary: {image_shapes} images found, {len(extracted_images)} saved")
             
             return extracted_images
             
@@ -410,42 +424,67 @@ class EnhancedContentExtractor:
             self.logger.warning(f"⚠️ Error extracting images from slide {slide_number}: {e}")
             return []
     
-    def _is_meaningful_image(self, width: int, height: int, file_size: int) -> bool:
-        """Determine if an image is meaningful (not just tick marks, small icons, etc.)."""
+    def _is_meaningful_image(self, width: int, height: int, file_size: int, slide_content: str = "", slide_number: int = 1) -> bool:
+        """Determine if an image is meaningful based on context and basic size filters."""
         try:
             # Convert from EMU (English Metric Units) to pixels (approximate)
             width_px = width / 9525  # Rough conversion
             height_px = height / 9525
             
-            # Filter criteria for meaningful images
-            min_width = 100  # pixels
-            min_height = 100  # pixels
-            min_area = 15000  # square pixels
-            min_file_size = 5000  # bytes (5KB)
+            # VERY minimal size filters - just to exclude tiny decorative elements
+            min_width = 20   # pixels - very small threshold
+            min_height = 20  # pixels - very small threshold
+            min_file_size = 500  # bytes (0.5KB) - very small threshold
             
-            # Check size criteria
+            # Only filter out truly tiny elements (like bullet points, small icons)
             if width_px < min_width or height_px < min_height:
+                self.logger.debug(f"Image too tiny (decorative): {width_px}x{height_px} px")
                 return False
             
-            # Check area (to filter out thin lines, small icons)
-            area = width_px * height_px
-            if area < min_area:
-                return False
-            
-            # Check file size (to filter out tiny images)
             if file_size < min_file_size:
+                self.logger.debug(f"Image file size too tiny: {file_size} bytes")
                 return False
             
-            # Additional check: reject very wide or very tall images (likely decorative)
-            aspect_ratio = max(width_px, height_px) / min(width_px, height_px)
-            if aspect_ratio > 5:  # Too elongated
-                return False
+            # Context-based inclusion (prioritize technical content)
+            slide_content_lower = slide_content.lower()
             
-            return True
+            # Technical keywords that suggest meaningful diagrams
+            technical_keywords = [
+                'architecture', 'diagram', 'design', 'flow', 'system', 'model',
+                'process', 'structure', 'framework', 'blueprint', 'solution',
+                'implementation', 'pipeline', 'workflow', 'algorithm', 'data',
+                'network', 'api', 'database', 'cloud', 'infrastructure', 'stack',
+                'component', 'module', 'interface', 'platform', 'technology'
+            ]
+            
+            # Check if slide contains technical keywords
+            has_technical_content = any(keyword in slide_content_lower for keyword in technical_keywords)
+            
+            # For slides with technical content, be very inclusive
+            if has_technical_content:
+                self.logger.info(f"✅ Image accepted (technical slide): {width_px}x{height_px} px, {file_size} bytes")
+                return True
+            
+            # For other slides, use slightly more restrictive criteria but still inclusive
+            # This helps filter out member photos, logos, but keeps charts/graphs
+            min_meaningful_width = 50   # pixels
+            min_meaningful_height = 50  # pixels
+            min_meaningful_area = 3000  # square pixels
+            
+            area = width_px * height_px
+            if (width_px >= min_meaningful_width and 
+                height_px >= min_meaningful_height and 
+                area >= min_meaningful_area):
+                
+                self.logger.info(f"✅ Image accepted (size criteria): {width_px}x{height_px} px, {file_size} bytes")
+                return True
+            
+            self.logger.info(f"❌ Image filtered out: {width_px}x{height_px} px, {file_size} bytes (likely decorative)")
+            return False
             
         except Exception as e:
-            # If we can't determine, err on the side of caution and include it
-            self.logger.debug(f"Could not determine image significance: {e}")
+            # If we can't determine, err on the side of inclusion for technical content
+            self.logger.debug(f"Could not determine image significance, including: {e}")
             return True
             
     def _analyze_ppt_structure_dynamically(self, file_path: str) -> List[Dict]:

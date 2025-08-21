@@ -1,41 +1,37 @@
-<<<<<<< HEAD
 submission_id,section,evaluator_model,evaluator_type,Problem Statement,Proposed Solution,Technical Architecture,Novelty  Uniqueness/creativity,presentaion,ethical consideration,completeness of design solution,implementing ibm dpk/rag/aws/watsonx/granite,uniqueness,Completeness of the solution,impact on the theme chosen,section_total,used_image,image_path,used_extracted_text
-Ascent,problem_statement,ibm/granite-3-2-8b-instruct,text,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.9,,,
-Ascent,problem_statement,ibm/granite-3-2b-instruct,text,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.9,,,
-Ascent,problem_statement,meta-llama/llama-3-3-70b-instruct,text,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.9,,,
-Ascent,problem_statement,mistralai/mistral-large,text,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.9,,,
-Ascent,proposed_solution,ibm/granite-3-2-8b-instruct,text,5.0,8.0,7.0,7.0,7.0,6.0,8.0,8.0,0.0,0.0,0.0,7.4,,,
-Ascent,proposed_solution,ibm/granite-3-2b-instruct,text,3.0,3.0,3.0,3.0,3.0,3.0,3.0,3.0,3.0,3.0,3.0,5.699999999999999,,,
-Ascent,proposed_solution,meta-llama/llama-3-3-70b-instruct,text,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,,
-Ascent,proposed_solution,mistralai/mistral-large,text,0.0,6.0,6.0,5.0,5.0,0.0,5.0,6.0,0.0,0.0,0.0,4.4,,,
-Ascent,technical_architecture,ibm/granite-3-2-8b-instruct,text,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.9,False,,False
-Ascent,technical_architecture,ibm/granite-3-2b-instruct,text,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.9,False,,False
-Ascent,technical_architecture,meta-llama/llama-3-3-70b-instruct,text,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.9,False,,False
-Ascent,technical_architecture,mistralai/mistral-large,text,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.9,False,,False
-COSMIC_CODERS,problem_statement,ibm/granite-3-2-8b-instruct,text,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.9,,,
-COSMIC_CODERS,problem_statement,ibm/granite-3-2b-instruct,text,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.9,,,
-COSMIC_CODERS,problem_statement,meta-llama/llama-3-3-70b-instruct,text,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.9,,,
-COSMIC_CODERS,problem_statement,mistralai/mistral-large,text,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.9,,,
-COSMIC_CODERS,proposed_solution,ibm/granite-3-2-8b-instruct,text,0.0,7.0,0.0,8.0,6.0,8.0,7.0,9.0,0.0,0.0,0.0,6.0,,,
-COSMIC_CODERS,proposed_solution,ibm/granite-3-2b-instruct,text,9.0,9.0,9.0,9.0,9.0,9.0,9.0,9.0,0.0,0.0,0.0,9.45,,,
-COSMIC_CODERS,proposed_solution,meta-llama/llama-3-3-70b-instruct,text,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,,
-COSMIC_CODERS,proposed_solution,mistralai/mistral-large,text,0.0,7.0,6.0,6.0,5.0,5.0,5.0,8.0,0.0,0.0,0.0,5.65,,,
-COSMIC_CODERS,technical_architecture,ibm/granite-3-2-8b-instruct,text,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.9,False,,False
-COSMIC_CODERS,technical_architecture,ibm/granite-3-2b-instruct,text,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.9,False,,False
-COSMIC_CODERS,technical_architecture,meta-llama/llama-3-3-70b-instruct,text,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.9,False,,False
-COSMIC_CODERS,technical_architecture,mistralai/mistral-large,text,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.9,False,,False
-=======
-submission_id,section,evaluator_model,evaluator_type,uniqueness,Completeness of the solution,impact on the theme chosen,ethical consideration,section_total,used_image,image_path,used_extracted_text
-MindEase IBM_HACKATHON,problem_statement,ibm/granite-3-2-8b-instruct,text,0.7,0.6,0.8,0.9,0.73,,,
-MindEase IBM_HACKATHON,problem_statement,ibm/granite-3-2b-instruct,text,0.95,0.98,0.97,0.96,0.9664999999999999,,,
-MindEase IBM_HACKATHON,problem_statement,meta-llama/llama-3-3-70b-instruct,text,6.0,4.0,8.0,7.0,6.15,,,
-MindEase IBM_HACKATHON,problem_statement,mistralai/mistral-large,text,7.5,4.0,6.5,8.0,6.225,,,
-MindEase IBM_HACKATHON,proposed_solution,ibm/granite-3-2-8b-instruct,text,0.0,0.0,0.0,0.0,0.0,,,
-MindEase IBM_HACKATHON,proposed_solution,ibm/granite-3-2b-instruct,text,0.0,0.0,0.0,0.0,0.0,,,
-MindEase IBM_HACKATHON,proposed_solution,meta-llama/llama-3-3-70b-instruct,text,6.0,4.0,7.0,8.0,6.0,,,
-MindEase IBM_HACKATHON,proposed_solution,mistralai/mistral-large,text,0.0,0.0,0.0,0.0,0.0,,,
-MindEase IBM_HACKATHON,technical_architecture,ibm/granite-3-2-8b-instruct,text,0.0,0.0,0.0,0.0,0.0,False,,False
-MindEase IBM_HACKATHON,technical_architecture,ibm/granite-3-2b-instruct,text,0.0,0.0,0.0,0.0,0.0,False,,False
-MindEase IBM_HACKATHON,technical_architecture,meta-llama/llama-3-3-70b-instruct,text,0.0,0.0,0.0,0.0,0.0,False,,False
-MindEase IBM_HACKATHON,technical_architecture,mistralai/mistral-large,text,0.0,0.0,0.0,0.0,0.0,False,,False
->>>>>>> c8a25ef9c0f02973c07b6e3cad026750900c80b1
+Trifecta,problem_statement,ibm/granite-3-2-8b-instruct,text,9.0,0.0,0.0,5.0,0.0,0.0,5.0,0.0,0.0,0.0,0.0,2.4,,,
+Trifecta,problem_statement,ibm/granite-3-2b-instruct,text,9.0,9.0,9.0,5.0,9.0,9.0,5.0,9.0,0.0,0.0,0.0,8.25,,,
+Trifecta,problem_statement,meta-llama/llama-3-3-70b-instruct,text,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,0.0,0.0,0.0,5.25,,,
+Trifecta,problem_statement,mistralai/mistral-large,text,8.5,7.5,6.0,5.0,5.0,5.0,5.0,7.0,0.0,0.0,0.0,6.325,,,
+Trifecta,proposed_solution,ibm/granite-3-2-8b-instruct,text,0.0,8.0,0.0,5.0,7.0,0.0,5.0,10.0,0.0,0.0,0.0,4.4,,,
+Trifecta,proposed_solution,ibm/granite-3-2b-instruct,text,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,9.5,,,
+Trifecta,proposed_solution,meta-llama/llama-3-3-70b-instruct,text,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,0.0,0.0,0.0,5.25,,,
+Trifecta,proposed_solution,mistralai/mistral-large,text,0.0,6.0,5.0,5.0,5.0,0.0,5.0,6.0,0.0,0.0,0.0,4.25,,,
+Trifecta,technical_architecture,ibm/granite-3-2-8b-instruct,text,0.0,0.0,5.0,5.0,0.0,0.0,5.0,0.0,0.0,0.0,0.0,2.25,False,,True
+Trifecta,technical_architecture,ibm/granite-3-2b-instruct,text,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,9.5,False,,True
+Trifecta,technical_architecture,meta-llama/llama-3-3-70b-instruct,text,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,0.0,0.0,0.0,5.25,False,,True
+Trifecta,technical_architecture,mistralai/mistral-large,text,0.0,0.0,0.0,5.0,0.0,0.0,5.0,0.0,0.0,0.0,0.0,1.5,False,,True
+Unknown,problem_statement,ibm/granite-3-2-8b-instruct,text,8.0,0.0,0.0,5.0,0.0,0.0,5.0,0.0,0.0,0.0,0.0,2.3,,,
+Unknown,problem_statement,ibm/granite-3-2b-instruct,text,9.0,9.0,9.0,5.0,9.0,9.0,5.0,9.0,0.0,0.0,0.0,8.25,,,
+Unknown,problem_statement,meta-llama/llama-3-3-70b-instruct,text,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,0.0,0.0,0.0,5.25,,,
+Unknown,problem_statement,mistralai/mistral-large,text,10.0,8.0,7.0,5.0,5.0,6.0,5.0,8.0,0.0,0.0,0.0,6.95,,,
+Unknown,proposed_solution,ibm/granite-3-2-8b-instruct,text,8.0,8.0,7.0,5.0,8.0,8.0,5.0,9.0,0.0,0.0,0.0,7.45,,,
+Unknown,proposed_solution,ibm/granite-3-2b-instruct,text,9.0,8.0,9.0,5.0,7.0,8.0,5.0,9.0,0.0,0.0,0.0,7.75,,,
+Unknown,proposed_solution,meta-llama/llama-3-3-70b-instruct,text,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,0.0,0.0,0.0,5.25,,,
+Unknown,proposed_solution,mistralai/mistral-large,text,7.0,7.5,6.0,5.0,5.0,5.0,5.0,7.0,0.0,0.0,0.0,6.175,,,
+Unknown,technical_architecture,ibm/granite-3-2-8b-instruct,text,0.0,0.0,5.0,5.0,0.0,0.0,5.0,0.0,0.0,0.0,0.0,2.25,False,,True
+Unknown,technical_architecture,ibm/granite-3-2b-instruct,text,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,9.5,False,,True
+Unknown,technical_architecture,meta-llama/llama-3-3-70b-instruct,text,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,0.0,0.0,0.0,5.25,False,,True
+Unknown,technical_architecture,mistralai/mistral-large,text,0.0,0.0,0.0,5.0,0.0,0.0,5.0,0.0,0.0,0.0,0.0,1.5,False,,True
+Zero_to_One,problem_statement,ibm/granite-3-2-8b-instruct,text,8.0,0.0,0.0,5.0,0.0,0.0,5.0,0.0,0.0,0.0,0.0,2.3,,,
+Zero_to_One,problem_statement,ibm/granite-3-2b-instruct,text,9.0,8.0,7.0,5.0,8.0,7.0,5.0,7.0,0.0,0.0,0.0,7.2,,,
+Zero_to_One,problem_statement,meta-llama/llama-3-3-70b-instruct,text,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,9.5,,,
+Zero_to_One,problem_statement,mistralai/mistral-large,text,8.0,0.0,0.0,5.0,5.0,0.0,5.0,0.0,0.0,0.0,0.0,2.8,,,
+Zero_to_One,proposed_solution,ibm/granite-3-2-8b-instruct,text,8.0,9.0,7.0,5.0,5.0,8.0,5.0,9.0,0.0,0.0,0.0,7.3,,,
+Zero_to_One,proposed_solution,ibm/granite-3-2b-instruct,text,9.0,9.0,9.0,5.0,9.0,9.0,5.0,9.0,0.0,0.0,0.0,8.25,,,
+Zero_to_One,proposed_solution,meta-llama/llama-3-3-70b-instruct,text,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,0.0,0.0,0.0,5.25,,,
+Zero_to_One,proposed_solution,mistralai/mistral-large,text,6.0,7.0,5.0,5.0,5.0,7.0,5.0,6.0,0.0,0.0,0.0,6.050000000000001,,,
+Zero_to_One,technical_architecture,ibm/granite-3-2-8b-instruct,text,7.0,8.0,9.0,5.0,8.0,9.0,5.0,9.0,0.0,0.0,0.0,7.8,False,,True
+Zero_to_One,technical_architecture,ibm/granite-3-2b-instruct,text,9.0,9.0,10.0,5.0,7.0,8.0,5.0,10.0,0.0,0.0,0.0,8.15,False,,True
+Zero_to_One,technical_architecture,meta-llama/llama-3-3-70b-instruct,text,5.0,5.0,5.0,5.0,5.0,5.0,5.0,5.0,0.0,0.0,0.0,5.25,False,,True
+Zero_to_One,technical_architecture,mistralai/mistral-large,text,6.0,7.0,7.5,5.0,5.0,8.0,5.0,7.0,0.0,0.0,0.0,6.675,False,,True

@@ -715,7 +715,7 @@ def get_submissions_table():
                     <h4 style="color: #28a745; margin: 0 0 8px 0;">{title}</h4>
                     <p style="color: #666; font-size: 14px; margin: 0 0 10px 0;">{description}</p>
                     <p style="color: #999; font-size: 12px; margin: 0 0 15px 0;">Size: {file_size:.1f} KB</p>
-                    <button onclick="downloadFile('results/{filename}')" style="
+                    <button onclick="window.open('./results/{filename}', '_blank')" style="
                         background: #28a745;
                         color: white;
                         border: none;
@@ -742,16 +742,6 @@ def get_submissions_table():
             ">
             </div>
         </div>
-        <script>
-        function downloadFile(filepath) {
-            const link = document.createElement('a');
-            link.href = filepath;
-            link.download = filepath.split('/').pop();
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-        </script>
         """
     
     # Create summary header

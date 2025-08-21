@@ -1,81 +1,58 @@
-<<<<<<< HEAD
 submission_id,problem_statement_Problem Statement,problem_statement_Proposed Solution,problem_statement_Technical Architecture,problem_statement_Novelty  Uniqueness/creativity,problem_statement_presentaion,problem_statement_ethical consideration,problem_statement_completeness of design solution,problem_statement_implementing ibm dpk/rag/aws/watsonx/granite,problem_statement_uniqueness,problem_statement_Completeness of the solution,problem_statement_impact on the theme chosen,problem_statement_total,proposed_solution_Problem Statement,proposed_solution_Proposed Solution,proposed_solution_Technical Architecture,proposed_solution_Novelty  Uniqueness/creativity,proposed_solution_presentaion,proposed_solution_ethical consideration,proposed_solution_completeness of design solution,proposed_solution_implementing ibm dpk/rag/aws/watsonx/granite,proposed_solution_uniqueness,proposed_solution_Completeness of the solution,proposed_solution_impact on the theme chosen,proposed_solution_total,technical_architecture_Problem Statement,technical_architecture_Proposed Solution,technical_architecture_Technical Architecture,technical_architecture_Novelty  Uniqueness/creativity,technical_architecture_presentaion,technical_architecture_ethical consideration,technical_architecture_completeness of design solution,technical_architecture_implementing ibm dpk/rag/aws/watsonx/granite,technical_architecture_uniqueness,technical_architecture_Completeness of the solution,technical_architecture_impact on the theme chosen,technical_architecture_total,overall_score,file_size_mb,file_size_factor,missing_sections,missing_sections_count,content_status,feedback,missing_requirements,track,Problem Statement,Proposed Solution,Technical Architecture,Novelty  Uniqueness/creativity,presentaion,ethical consideration,completeness of design solution,implementing ibm dpk/rag/aws/watsonx/granite,uniqueness,Completeness of the solution,impact on the theme chosen,Certification(yes/no),Feedback,Missing content(anything missing)
-COSMIC_CODERS,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.9,2.25,5.75,3.75,5.75,5.0,5.5,5.25,6.5,0.0,0.0,0.0,5.2749999999999995,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.9,3.2353125,1.704300880432129,1.05,"Problem Statement, Technical Architecture",2,"{""problem_statement"": {""has_content"": false, ""content_length"": 0, ""is_substantial"": false}, ""proposed_solution"": {""has_content"": true, ""content_length"": 482, ""is_substantial"": true}, ""technical_architecture"": {""has_content"": false, ""content_length"": 0, ""is_substantial"": false}}","STRENGTHS:
-• The solution mentions key technologies such as Agentic AI, RAG, and Granite from IBM, which are relevant and innovative.
-• The solution leverages multiple IBM tools to create a comprehensive approach to urban planning, addressing contextual relevance, environmental ethics, and legal compliance.
-• Comprehensive use of IBM's Gen AI technologies, clear explanation of each component's role, and focus on ethical considerations.
-• Clearly defines the roles of Agentic AI, RAG, and Granite in the solution. Emphasizes the use of IBM Watsonx and IBM Granite APIs.
+Zero_to_One,7.5,3.25,3.0,5.0,4.5,3.0,5.0,3.0,1.25,1.25,1.25,5.45,7.0,7.5,6.5,5.0,6.0,7.25,5.0,7.25,0.0,0.0,0.0,6.7125,6.75,7.25,7.875,5.0,6.25,7.5,5.0,7.75,0.0,0.0,0.0,6.96875,6.4234375,0.0,1.0,None,0,"{""problem_statement"": {""has_content"": true, ""content_length"": 270, ""is_substantial"": true}, ""proposed_solution"": {""has_content"": true, ""content_length"": 592, ""is_substantial"": true}, ""technical_architecture"": {""has_content"": true, ""content_length"": 600, ""is_substantial"": true}}","STRENGTHS:
+• The solution is well-defined, creative, and addresses a significant educational need. It leverages advanced technologies like RAG and IBM Granite for personalized learning. The presentation is clear and concise, explaining the 'why', 'what', and 'how'.
+• Clearly defined components, good use of Agentic Planner and RAG module, emphasis on ethical considerations with Granite model.
 
 AREAS FOR IMPROVEMENT:
-• Missing required sections: Problem Statement, Technical Architecture
-• Needs a clear problem statement, structured presentation, and explanation of technical architecture. Also, mentions of bias testing and ethical considerations are absent.
-• None identified.
-• Missing detailed explanation of the problem statement, how the solution addresses it, technical architecture details, bias testing methodology, and completeness of the design.
-• Lack of explicit certification, limited information on bias testing methodology, and no clear demonstration of a working prototype.
-
-FILE SIZE OPTIMIZATION:
-• Optimal file size (1.7MB) - processing efficiency bonus applied",[],custom,1.4375000000000002,2.6625,1.9625000000000001,2.6625,2.4000000000000004,2.575,2.4875000000000003,2.9250000000000003,0.65,0.65,0.65,no,"STRENGTHS:
-• The solution mentions key technologies such as Agentic AI, RAG, and Granite from IBM, which are relevant and innovative.
-• The solution leverages multiple IBM tools to create a comprehensive approach to urban planning, addressing contextual relevance, environmental ethics, and legal compliance.
-• Comprehensive use of IBM's Gen AI technologies, clear explanation of each component's role, and focus on ethical considerations.
-• Clearly defines the roles of Agentic AI, RAG, and Granite in the solution. Emphasizes the use of IBM Watsonx and IBM Granite APIs.
+• More detailed descriptions of each component and their interactions are needed. Include actual diagrams or ensure OCR text extraction is available. Clarify how the solution scales and its impact.
+• There is no proposed solution, technical architecture, novelty/uniqueness, presentation, ethical considerations, completeness of design solution, or implementation details provided.
+• More detailed explanation of how each component interacts, and specific mention of IBM or AWS usage.",[],custom,7.0625,6.1375,5.93125,5.000000000000001,5.6375,6.062500000000001,5.000000000000001,6.15,0.37500000000000006,0.37500000000000006,0.37500000000000006,no,"STRENGTHS:
+• The solution is well-defined, creative, and addresses a significant educational need. It leverages advanced technologies like RAG and IBM Granite for personalized learning. The presentation is clear and concise, explaining the 'why', 'what', and 'how'.
+• Clearly defined components, good use of Agentic Planner and RAG module, emphasis on ethical considerations with Granite model.
 
 AREAS FOR IMPROVEMENT:
-• Missing required sections: Problem Statement, Technical Architecture
-• Needs a clear problem statement, structured presentation, and explanation of technical architecture. Also, mentions of bias testing and ethical considerations are absent.
-• None identified.
-• Missing detailed explanation of the problem statement, how the solution addresses it, technical architecture details, bias testing methodology, and completeness of the design.
-• Lack of explicit certification, limited information on bias testing methodology, and no clear demonstration of a working prototype.
-
-FILE SIZE OPTIMIZATION:
-• Optimal file size (1.7MB) - processing efficiency bonus applied",None
-Ascent,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.9,2.0,4.25,4.0,3.75,3.75,2.25,4.0,4.25,0.75,0.75,0.75,4.375,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.9,2.9045625,7.533148765563965,1.05,"Problem Statement, Technical Architecture",2,"{""problem_statement"": {""has_content"": false, ""content_length"": 0, ""is_substantial"": false}, ""proposed_solution"": {""has_content"": true, ""content_length"": 600, ""is_substantial"": true}, ""technical_architecture"": {""has_content"": false, ""content_length"": 0, ""is_substantial"": false}}","STRENGTHS:
-• The solution presents a well-defined approach to building an Agentic AI RAG system using IBM Slate and Data Prep Kit. It also emphasizes the importance of maintaining agent memory for improved accuracy.
-• The solution outlines a general approach to building a knowledge base and using LangChain and IBM Slate model/DPK for document processing.
-• The solution provides a clear overview of the technical architecture, including the use of LangChain, IBM Slate model, and Data Prep Kit. The setup of a retriever and agent memory also shows promise for creating an effective Agentic AI RAG System.
-• Unable to evaluate due to technical issue
+• More detailed descriptions of each component and their interactions are needed. Include actual diagrams or ensure OCR text extraction is available. Clarify how the solution scales and its impact.
+• There is no proposed solution, technical architecture, novelty/uniqueness, presentation, ethical considerations, completeness of design solution, or implementation details provided.
+• More detailed explanation of how each component interacts, and specific mention of IBM or AWS usage.",None
+Unknown,8.0,5.5,5.25,5.0,4.75,5.0,5.0,5.5,0.0,0.0,0.0,5.6875,7.25,7.125,6.75,5.0,6.25,6.5,5.0,7.5,0.0,0.0,0.0,6.65625,2.5,2.5,3.75,5.0,2.5,2.5,5.0,2.5,1.25,1.25,1.25,4.625,5.6546875,0.0,1.0,Technical Architecture,1,"{""problem_statement"": {""has_content"": true, ""content_length"": 265, ""is_substantial"": true}, ""proposed_solution"": {""has_content"": true, ""content_length"": 458, ""is_substantial"": true}, ""technical_architecture"": {""has_content"": false, ""content_length"": 0, ""is_substantial"": false}}","STRENGTHS:
+• Two technical diagrams were included, which could potentially provide insight into the technical architecture.
+• None identifiable due to lack of content.
 
 AREAS FOR IMPROVEMENT:
-• More details are needed on how the system will process user queries and update agent memory. Additionally, the presentation could benefit from more visual aids to illustrate the technical architecture.
-• Missing required sections: Problem Statement, Technical Architecture
-• Evaluation failed for model ibm/granite-3-2b-instruct: Model evaluation failed: Could not parse JSON response: {
-  ""section"": ""proposed_solution"",
-  ""score...
-• Missing detailed explanation of the problem statement, ethical considerations, and completeness of the design solution. The presentation could be more structured and detailed. Technical architecture needs more clarity and diagrams.
-• Section appears to be missing or has insufficient content. Please provide detailed problem statement information.
+• Ensure explicit mention of IBM or AWS in the solution, provide more detail on bias testing methodology, and describe the working prototype.
+• Provide detailed descriptions for all aspects including problem statement, proposed solution, technical architecture, novelty, presentation quality, ethical considerations, completeness of design solution, and implementation details.
+• Could provide more details on how the solution addresses ethical considerations and bias testing.
 
-FILE SIZE OPTIMIZATION:
-• Optimal file size (7.5MB) - processing efficiency bonus applied",[],custom,1.3500000000000003,2.1375,2.0500000000000003,1.9625000000000001,1.9625000000000001,1.4375000000000002,2.0500000000000003,2.1375,0.9125000000000001,0.9125000000000001,0.9125000000000001,no,"STRENGTHS:
-• The solution presents a well-defined approach to building an Agentic AI RAG system using IBM Slate and Data Prep Kit. It also emphasizes the importance of maintaining agent memory for improved accuracy.
-• The solution outlines a general approach to building a knowledge base and using LangChain and IBM Slate model/DPK for document processing.
-• The solution provides a clear overview of the technical architecture, including the use of LangChain, IBM Slate model, and Data Prep Kit. The setup of a retriever and agent memory also shows promise for creating an effective Agentic AI RAG System.
-• Unable to evaluate due to technical issue
+MISSING CONTENT:
+• Missing required sections: Technical Architecture",[],custom,5.812500000000001,5.018750000000001,5.250000000000001,5.000000000000001,4.487500000000001,4.650000000000001,5.000000000000001,5.150000000000001,0.43750000000000006,0.43750000000000006,0.43750000000000006,no,"STRENGTHS:
+• Two technical diagrams were included, which could potentially provide insight into the technical architecture.
+• None identifiable due to lack of content.
 
 AREAS FOR IMPROVEMENT:
-• More details are needed on how the system will process user queries and update agent memory. Additionally, the presentation could benefit from more visual aids to illustrate the technical architecture.
-• Missing required sections: Problem Statement, Technical Architecture
-• Evaluation failed for model ibm/granite-3-2b-instruct: Model evaluation failed: Could not parse JSON response: {
-  ""section"": ""proposed_solution"",
-  ""score...
-• Missing detailed explanation of the problem statement, ethical considerations, and completeness of the design solution. The presentation could be more structured and detailed. Technical architecture needs more clarity and diagrams.
-• Section appears to be missing or has insufficient content. Please provide detailed problem statement information.
+• Ensure explicit mention of IBM or AWS in the solution, provide more detail on bias testing methodology, and describe the working prototype.
+• Provide detailed descriptions for all aspects including problem statement, proposed solution, technical architecture, novelty, presentation quality, ethical considerations, completeness of design solution, and implementation details.
+• Could provide more details on how the solution addresses ethical considerations and bias testing.
 
-FILE SIZE OPTIMIZATION:
-• Optimal file size (7.5MB) - processing efficiency bonus applied",None
-=======
-submission_id,problem_statement_uniqueness,problem_statement_Completeness of the solution,problem_statement_impact on the theme chosen,problem_statement_ethical consideration,problem_statement_total,proposed_solution_uniqueness,proposed_solution_Completeness of the solution,proposed_solution_impact on the theme chosen,proposed_solution_ethical consideration,proposed_solution_total,technical_architecture_uniqueness,technical_architecture_Completeness of the solution,technical_architecture_impact on the theme chosen,technical_architecture_ethical consideration,technical_architecture_total,overall_score,file_size_mb,file_size_factor,feedback,missing_requirements,track,certificates_ok,certificate_status
-MindEase IBM_HACKATHON,3.7875,2.395,4.0675,4.215,3.517875,1.5,1.0,1.75,2.0,1.5,0.0,0.0,0.0,0.0,0.0,1.659380625,1.7314844131469729,1.05,"STRENGTHS:
-• Problem Statement: Clearly defines a unique problem in digital wellness, emphasizes ethical considerations and use of agentic AI for personalized recommendations.
-• Problem Statement: Clearly defines a unique, realistic problem, utilizes agentic AI, and aligns with ethical guidelines set by IBM's Granite series.
-• Problem Statement: Identifies a critical problem in digital well-being and suggests the use of agentic AI and data preparation for personalized recommendations.
+MISSING CONTENT:
+• Missing required sections: Technical Architecture",None
+Trifecta,7.875,5.375,5.0,5.0,4.75,4.75,5.0,5.25,0.0,0.0,0.0,5.55625,2.5,6.0,3.75,5.0,5.5,2.5,5.0,6.5,1.25,1.25,1.25,5.85,2.5,2.5,3.75,5.0,2.5,2.5,5.0,2.5,1.25,1.25,1.25,4.625,5.333125,0.0,1.0,Technical Architecture,1,"{""problem_statement"": {""has_content"": true, ""content_length"": 557, ""is_substantial"": true}, ""proposed_solution"": {""has_content"": true, ""content_length"": 398, ""is_substantial"": true}, ""technical_architecture"": {""has_content"": false, ""content_length"": 0, ""is_substantial"": false}}","STRENGTHS:
+• Content is present for proposed solution evaluation
+• None identifiable due to lack of content.
 
 AREAS FOR IMPROVEMENT:
-• Problem Statement: Lacks explicit mention of IBM or AWS, doesn't provide evidence of a working prototype, and doesn't detail how it differs from simple LLMs.
-• Problem Statement: Could benefit from explicit mention of IBM or AWS, providing a working prototype, and detailing bias testing methodology.
-• Problem Statement: Needs more specifics on the data preparation toolkit, how agentic AI will be applied, and evidence of a working prototype or clear plan for its development. Missing required elements include a YouTube video link, explicit mention of IBM or AWS, and details on bias testing methodology.
-• Problem Statement: Needs more detail on the working prototype, specific technologies used, and how it differs from existing solutions.
-• Proposed Solution: Missing required elements include a working prototype, clear identification of must-have technologies, and a YouTube video link. Additionally, more technical details on how Agentic AI and Granite models are utilized would strengthen the proposal.
+• There is no clear explanation of the problem statement, proposed solution, or presentation quality. The technical architecture could benefit from more detailed descriptions and explanations of system components and their interactions.
+• The section lacks a proposed solution, technical architecture explanation, novelty/uniqueness discussion, presentation quality assessment, ethical considerations, completeness of design solution analysis, and implementation details.
+• Provide detailed descriptions for each criterion including problem statement, proposed solution, technical architecture, novelty, presentation quality, ethical considerations, completeness of design solution, and implementation details.
 
-FILE SIZE OPTIMIZATION:
-• Optimal file size (1.7MB) - processing efficiency bonus applied",[],healthcare,0,Certificate Invalid
->>>>>>> c8a25ef9c0f02973c07b6e3cad026750900c80b1
+MISSING CONTENT:
+• Missing required sections: Technical Architecture",[],custom,4.112500000000001,4.5875,4.125000000000001,5.000000000000001,4.2250000000000005,3.1750000000000003,5.000000000000001,4.7250000000000005,0.8750000000000001,0.8750000000000001,0.8750000000000001,no,"STRENGTHS:
+• Content is present for proposed solution evaluation
+• None identifiable due to lack of content.
+
+AREAS FOR IMPROVEMENT:
+• There is no clear explanation of the problem statement, proposed solution, or presentation quality. The technical architecture could benefit from more detailed descriptions and explanations of system components and their interactions.
+• The section lacks a proposed solution, technical architecture explanation, novelty/uniqueness discussion, presentation quality assessment, ethical considerations, completeness of design solution analysis, and implementation details.
+• Provide detailed descriptions for each criterion including problem statement, proposed solution, technical architecture, novelty, presentation quality, ethical considerations, completeness of design solution, and implementation details.
+
+MISSING CONTENT:
+• Missing required sections: Technical Architecture",None
